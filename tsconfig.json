@@ -15,7 +15,7 @@
     "inlineSources": true,
     "rootDir": "./",
     "tsBuildInfoFile": ".tsbuildinfo",
-    "declaration": false,
+    "declaration": true,
     "incremental": true
   },
   "include": ["**/*.ts"]

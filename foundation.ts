@@ -7,21 +7,22 @@ export { newOpenEvent } from './foundation/open-event.js';
 export type { OpenEvent, OpenDetail } from './foundation/open-event.js';
 
 export {
-  newEditEvent,
+  handleEdit,
   isComplex,
   isInsert,
   isNamespaced,
-  isUpdate,
   isRemove,
+  isUpdate,
+  newEditEvent,
 } from './foundation/edit-event.js';
 export type {
-  EditEvent,
-  Edit,
-  Insert,
   AttributeValue,
+  Edit,
+  EditEvent,
+  Insert,
   NamespacedAttributeValue,
-  Update,
   Remove,
+  Update,
 } from './foundation/edit-event.js';
 
 export { cyrb64 } from './foundation/cyrb64.js';

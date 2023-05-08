@@ -18,10 +18,37 @@ import type { Drawer } from '@material/mwc-drawer';
 
 import { allLocales, sourceLocale, targetLocales } from './locales.js';
 
-import { isComplex, isInsert, isRemove, isUpdate } from './foundation.js';
+import {
+  cyrb64,
+  Edit,
+  EditEvent,
+  handleEdit,
+  isComplex,
+  isInsert,
+  isRemove,
+  isUpdate,
+  OpenEvent,
+} from './foundation.js';
 
-import { Editing, LogEntry } from './mixins/Editing.js';
-import { Plugging, pluginTag } from './mixins/Plugging.js';
+export type LogEntry = { undo: Edit; redo: Edit };
+
+export type Plugin = {
+  name: string;
+  translations?: Record<typeof targetLocales[number], string>;
+  src: string;
+  icon: string;
+  requireDoc?: boolean;
+  active?: boolean;
+};
+export type PluginSet = { menu: Plugin[]; editor: Plugin[] };
+
+const pluginTags = new Map<string, string>();
+
+/** @returns a valid customElement tagName containing the URI hash. */
+function pluginTag(uri: string): string {
+  if (!pluginTags.has(uri)) pluginTags.set(uri, `oscd-p${cyrb64(uri)}`);
+  return pluginTags.get(uri)!;
+}
 
 type Control = {
   icon: string;
@@ -80,7 +107,99 @@ function renderMenuItem(control: Control): TemplateResult {
 
 @customElement('open-scd')
 @localized()
-export class OpenSCD extends Plugging(Editing(LitElement)) {
+export class OpenSCD extends LitElement {
+  @state()
+  /** The `XMLDocument` currently being edited */
+  get doc(): XMLDocument {
+    return this.docs[this.docName];
+  }
+
+  @state()
+  history: LogEntry[] = [];
+
+  @state()
+  editCount: number = 0;
+
+  @state()
+  get last(): number {
+    return this.editCount - 1;
+  }
+
+  @state()
+  get canUndo(): boolean {
+    return this.last >= 0;
+  }
+
+  @state()
+  get canRedo(): boolean {
+    return this.editCount < this.history.length;
+  }
+
+  /** The set of `XMLDocument`s currently loaded */
+  @state()
+  docs: Record<string, XMLDocument> = {};
+
+  /** The name of the [[`doc`]] currently being edited */
+  @property({ type: String, reflect: true }) docName = '';
+
+  #loadedPlugins = new Map<string, Plugin>();
+
+  @state()
+  get loadedPlugins(): Map<string, Plugin> {
+    return this.#loadedPlugins;
+  }
+
+  #plugins: PluginSet = { menu: [], editor: [] };
+
+  @property({ type: Object })
+  get plugins(): PluginSet {
+    return this.#plugins;
+  }
+
+  set plugins(plugins: Partial<PluginSet>) {
+    Object.values(plugins).forEach(kind =>
+      kind.forEach(plugin => {
+        const tagName = pluginTag(plugin.src);
+        if (this.loadedPlugins.has(tagName)) return;
+        this.#loadedPlugins.set(tagName, plugin);
+        if (customElements.get(tagName)) return;
+        const url = new URL(plugin.src, window.location.href).toString();
+        import(url).then(mod => customElements.define(tagName, mod.default));
+      })
+    );
+
+    this.#plugins = { menu: [], editor: [], ...plugins };
+    this.requestUpdate();
+  }
+
+  handleOpenDoc({ detail: { docName, doc } }: OpenEvent) {
+    this.docName = docName;
+    this.docs[this.docName] = doc;
+  }
+
+  handleEditEvent(event: EditEvent) {
+    const edit = event.detail;
+    this.history.splice(this.editCount);
+    this.history.push({ undo: handleEdit(edit), redo: edit });
+    this.editCount += 1;
+  }
+
+  /** Undo the last `n` [[Edit]]s committed */
+  undo(n = 1) {
+    if (!this.canUndo || n < 1) return;
+    handleEdit(this.history[this.last!].undo);
+    this.editCount -= 1;
+    if (n > 1) this.undo(n - 1);
+  }
+
+  /** Redo the last `n` [[Edit]]s that have been undone */
+  redo(n = 1) {
+    if (!this.canRedo || n < 1) return;
+    handleEdit(this.history[this.editCount].redo);
+    this.editCount += 1;
+    if (n > 1) this.redo(n - 1);
+  }
+
   @query('#log')
   logUI!: Dialog;
 
@@ -203,8 +322,11 @@ export class OpenSCD extends Plugging(Editing(LitElement)) {
 
   constructor() {
     super();
-    this.handleKeyPress = this.handleKeyPress.bind(this);
-    document.addEventListener('keydown', this.handleKeyPress);
+
+    document.addEventListener('keydown', event => this.handleKeyPress(event));
+
+    this.addEventListener('oscd-open', event => this.handleOpenDoc(event));
+    this.addEventListener('oscd-edit', event => this.handleEditEvent(event));
   }
 
   private renderLogEntry(entry: LogEntry) {
