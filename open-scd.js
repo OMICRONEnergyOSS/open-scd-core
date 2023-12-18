@@ -9355,6 +9355,10 @@ let OpenSCD = class OpenSCD extends s$1 {
         ${this.plugins.menu.map(plugin => n `<${o$1(pluginTag(plugin.src))} docName="${this.docName}" .doc=${this.doc} locale="${this.locale}" .docs=${this.docs} .editCount=${this.editCount}></${o$1(pluginTag(plugin.src))}>`)}
       </aside>`;
     }
+    firstUpdated() {
+        const background = getComputedStyle(this.menuUI).getPropertyValue('--oscd-base3');
+        document.body.style.background = background;
+    }
 };
 _OpenSCD_loadedPlugins = new WeakMap(), _OpenSCD_plugins = new WeakMap(), _OpenSCD_actions = new WeakMap();
 OpenSCD.styles = i$5 `
