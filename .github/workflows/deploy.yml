@@ -1,34 +1,30 @@
-name: Bundle and Deploy
+name: Deploy
 on:
   push:
     branches:
       - main
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Use Node.js 16
+      - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '16'
-
-      - name: Configure git
-        run: |
-          git config user.name "GitHubActions"
-          git config user.email "<deploy@actions.openscd.github.io>"
+          node-version: '20'
 
       - name: Install dependencies
         run: npm ci
-          
-      - name: Bundle
-        run: npm run-script bundle
 
+      - name: Build
+        run: npm run bundle
 
-      - name: Deploy 🚀
-        uses: JamesIves/github-pages-deploy-action@v4
-        with:
-          folder: dist # The folder the action should deploy.
+      - name: Deploy
+        run: |
+          git remote set-url origin https://git:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
+          npx gh-pages -d dist -u "github-actions <support+actions@github.com>"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

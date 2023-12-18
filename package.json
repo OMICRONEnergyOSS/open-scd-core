@@ -1,10 +1,10 @@
 {
-  "name": "@openscd/open-scd-core",
+  "name": "@omicronenergy/open-scd-core",
   "version": "0.0.2",
-  "description": "The core editor of OpenSCD, without any extensions",
+  "description": "The core component of OpenSCD",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/openscd/open-scd-core.git"
+    "url": "git+https://github.com/omicronenergy/open-scd-core.git"
   },
   "keywords": [
     "scl",
@@ -13,14 +13,14 @@
     "61850",
     "iec61850",
     "scd",
-    "openscd"
+    "omicronenergy"
   ],
   "author": "OMICRON Electronics GmbH",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/openscd/open-scd-core/issues"
+    "url": "https://github.com/omicronenergy/open-scd-core/issues"
   },
-  "homepage": "https://github.com/openscd/open-scd-core#readme",
+  "homepage": "https://github.com/omicronenergy/open-scd-core#readme",
   "packageManager": "npm@8.12.2",
   "type": "module",
   "browser": "./dist/foundation.js",
