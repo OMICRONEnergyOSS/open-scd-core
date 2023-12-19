@@ -9356,7 +9356,7 @@ let OpenSCD = class OpenSCD extends s$1 {
       </aside>`;
     }
     firstUpdated() {
-        const background = getComputedStyle(this.menuUI).getPropertyValue('--oscd-base3');
+        const background = getComputedStyle(this.menuUI).getPropertyValue('--oscd-base2');
         document.body.style.background = background;
     }
 };
