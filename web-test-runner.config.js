@@ -77,6 +77,7 @@ export default /** @type {import("@web/test-runner").TestRunnerConfig} */ ({
       name: 'visual',
       files: 'dist/**/*.test.js',
       testRunnerHtml: testFramework => `
+<!DOCTYPE html>
 <html>
   <head>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300&family=Roboto:wght@300;400;500&display=swap">
@@ -122,8 +123,9 @@ export default /** @type {import("@web/test-runner").TestRunnerConfig} */ ({
       padding: 0px;
     }
 
-    body {
-      background: white;
+    open-scd {
+      display: block;
+      height: 600px;
     }
     </style>
   </body>
