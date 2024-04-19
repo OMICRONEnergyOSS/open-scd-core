@@ -122,7 +122,7 @@ allLocales.forEach(lang =>
         newEditEvent([
           { parent, node, reference },
           { parent, node, reference: null },
-          'invalid edit' as unknown as Edit,
+          { invalid: 'edit' } as unknown as Edit,
         ])
       );
 

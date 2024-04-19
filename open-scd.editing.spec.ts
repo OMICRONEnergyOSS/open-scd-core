@@ -7,6 +7,7 @@ import {
   constant,
   constantFrom,
   dictionary,
+  object as objectArbitrary,
   oneof,
   property,
   record,
@@ -31,6 +32,7 @@ import {
 import type { OpenSCD } from './open-scd.js';
 
 import './open-scd.js';
+import { UpdateNS, Value } from './foundation/edit-event.js';
 
 export namespace util {
   export const xmlAttributeName =
@@ -43,7 +45,7 @@ export namespace util {
   }
 
   export const sclDocString = `<?xml version="1.0" encoding="UTF-8"?>
-<SCL version="2007" revision="B" xmlns="http://www.iec.ch/61850/2003/SCL">
+  <SCL version="2007" revision="B" xmlns="http://www.iec.ch/61850/2003/SCL" xmlns:ens1="http://example.org/somePreexistingExtensionNamespace">
   <Substation name="A1" desc="test substation"></Substation>
 </SCL>`;
   const testDocStrings = [
@@ -117,10 +119,34 @@ export namespace util {
     return record({ element, attributes });
   }
 
+  export function updateNS(nodes: Node[]): Arbitrary<UpdateNS> {
+    const element = <Arbitrary<Element>>(
+      constantFrom(...nodes.filter(nd => nd.nodeType === Node.ELEMENT_NODE))
+    );
+    const attributes = dictionary(
+      stringArbitrary(),
+      oneof(stringArbitrary(), constant(null))
+    );
+    // object() instead of nested dictionary() necessary for performance reasons
+    const attributesNS = objectArbitrary({
+      key: webUrl(),
+      values: [stringArbitrary(), constant(null)],
+      maxDepth: 1,
+    }).map(
+      aNS =>
+        Object.fromEntries(
+          Object.entries(aNS).filter(
+            ([_, attrs]) => attrs && !(typeof attrs === 'string')
+          )
+        ) as Partial<Record<string, Partial<Record<string, Value>>>>
+    );
+    return record({ element, attributes, attributesNS });
+  }
+
   export function simpleEdit(
     nodes: Node[]
   ): Arbitrary<Insert | Update | Remove> {
-    return oneof(remove(nodes), insert(nodes), update(nodes));
+    return oneof(remove(nodes), insert(nodes), update(nodes), updateNS(nodes));
   }
 
   export function complexEdit(nodes: Node[]): Arbitrary<Edit[]> {
@@ -242,6 +268,43 @@ describe('Editing Element', () => {
     expect(element).to.have.attribute('myns:attr', 'namespaced value');
   });
 
+  it("updates an element's attributes on UpdateNS", () => {
+    const element = sclDoc.querySelector('Substation')!;
+    editor.dispatchEvent(
+      newEditEvent({
+        element,
+        attributes: {
+          name: 'A2',
+          desc: null,
+          ['__proto__']: 'a string', // covers a rare edge case branch
+        },
+        attributesNS: {
+          'http://example.org/myns': {
+            'myns:attr': 'value1',
+            'myns:attr2': 'value1',
+          },
+          'http://example.org/myns2': {
+            attr: 'value2',
+            attr2: 'value2',
+          },
+          'http://example.org/myns3': {
+            attr: 'value3',
+            attr2: 'value3',
+          },
+        },
+      })
+    );
+    expect(element).to.have.attribute('name', 'A2');
+    expect(element).to.not.have.attribute('desc');
+    expect(element).to.have.attribute('__proto__', 'a string');
+    expect(element).to.have.attribute('myns:attr', 'value1');
+    expect(element).to.have.attribute('myns:attr2', 'value1');
+    expect(element).to.have.attribute('ens2:attr', 'value2');
+    expect(element).to.have.attribute('ens2:attr2', 'value2');
+    expect(element).to.have.attribute('ens3:attr', 'value3');
+    expect(element).to.have.attribute('ens3:attr2', 'value3');
+  });
+
   it('processes complex edits in the given order', () => {
     const parent = sclDoc.documentElement;
     const reference = sclDoc.querySelector('Substation');
@@ -341,6 +404,40 @@ describe('Editing Element', () => {
         )
       ));
 
+    it('updates default- and foreign-namespace attributes on UpdateNS events', () =>
+      assert(
+        property(
+          util.testDocs.chain(([{ nodes }]) => util.updateNS(nodes)),
+          edit => {
+            editor.dispatchEvent(newEditEvent(edit));
+            return (
+              Object.entries(edit.attributes)
+                .filter(([name]) => util.xmlAttributeName.test(name))
+                .map(entry => entry as [string, Value])
+                .every(
+                  ([name, value]) => edit.element.getAttribute(name) === value
+                ) &&
+              Object.entries(edit.attributesNS)
+                .map(entry => entry as [string, Record<string, Value>])
+                .every(([ns, attributes]) =>
+                  Object.entries(attributes)
+                    .filter(([name]) => util.xmlAttributeName.test(name))
+                    .map(entry => entry as [string, Value])
+                    .every(
+                      ([name, value]) =>
+                        edit.element.getAttributeNS(
+                          ns,
+                          name.includes(':')
+                            ? <string>name.split(':', 2)[1]
+                            : name
+                        ) === value
+                    )
+                )
+            );
+          }
+        )
+      )).timeout(20000);
+
     it('removes elements on Remove edit events', () =>
       assert(
         property(
@@ -373,7 +470,7 @@ describe('Editing Element', () => {
             return true;
           }
         )
-      ));
+      )).timeout(20000);
 
     it('redoes up to n edits on redo(n) call', () =>
       assert(
@@ -396,6 +493,6 @@ describe('Editing Element', () => {
             return oldDoc1 === newDoc1 && oldDoc2 === newDoc2;
           }
         )
-      ));
+      )).timeout(20000);
   });
 });
