@@ -73,7 +73,6 @@ export declare class OpenSCD extends LitElement {
     private renderLogEntry;
     private renderHistory;
     render(): TemplateResult<1>;
-    firstUpdated(): void;
     static styles: import("lit").CSSResult;
 }
 declare global {
