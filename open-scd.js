@@ -9365,9 +9365,17 @@ let OpenSCD = class OpenSCD extends s$1 {
         type="modal"
         id="menu"
       >
-        <span slot="title">${msg('Menu')}</span>
+        <span
+          slot="title"
+          style="color: var(--mdc-theme-text-primary-on-background)"
+          >${msg('Menu')}</span
+        >
         ${this.docName
-            ? y `<span slot="subtitle">${this.docName}</span>`
+            ? y `<span
+              slot="subtitle"
+              style="color: var(--mdc-theme-text-secondary-on-background)"
+              >${this.docName}</span
+            >`
             : ''}
         <mwc-list
           wrapFocus
@@ -9424,6 +9432,10 @@ let OpenSCD = class OpenSCD extends s$1 {
         ${this.plugins.menu.map(plugin => n `<${o$1(pluginTag(plugin.src))} docName="${this.docName}" .doc=${this.doc} locale="${this.locale}" .docs=${this.docs} .editCount=${this.editCount}></${o$1(pluginTag(plugin.src))}>`)}
       </aside>`;
     }
+    firstUpdated() {
+        const background = getComputedStyle(this.menuUI).getPropertyValue('--oscd-base2');
+        document.body.style.background = background;
+    }
 };
 _OpenSCD_loadedPlugins = new WeakMap(), _OpenSCD_plugins = new WeakMap(), _OpenSCD_actions = new WeakMap();
 OpenSCD.styles = i$5 `
@@ -9442,9 +9454,79 @@ OpenSCD.styles = i$5 `
       text-decoration: none;
     }
 
-    mwc-top-app-bar-fixed {
-      --mdc-theme-text-disabled-on-light: rgba(255, 255, 255, 0.38);
-    } /* hack to fix disabled icon buttons rendering black */
+    @media (prefers-color-scheme: light) {
+      * {
+        --oscd-primary: var(--oscd-theme-primary, #2aa198);
+        --oscd-secondary: var(--oscd-theme-secondary, #6c71c4);
+        --oscd-base03: var(--oscd-theme-base03, #002b36);
+        --oscd-base02: var(--oscd-theme-base02, #073642);
+        --oscd-base01: var(--oscd-theme-base01, #586e75);
+        --oscd-base00: var(--oscd-theme-base00, #657b83);
+        --oscd-base0: var(--oscd-theme-base0, #839496);
+        --oscd-base1: var(--oscd-theme-base1, #93a1a1);
+        --oscd-base2: var(--oscd-theme-base2, #eee8d5);
+        --oscd-base3: var(--oscd-theme-base3, #fdf6e3);
+
+        --mdc-theme-text-disabled-on-light: rgba(255, 255, 255, 0.38);
+      }
+
+      mwc-top-app-bar-fixed {
+        --mdc-theme-text-disabled-on-light: rgba(255, 255, 255, 0.38);
+      } /* hack to fix disabled icon buttons rendering black */
+    }
+
+    @media (prefers-color-scheme: dark) {
+      * {
+        --oscd-primary: var(--oscd-theme-secondary, #6c71c4);
+        --oscd-secondary: var(--oscd-theme-primary, #2aa198);
+        --oscd-base03: var(--oscd-theme-base3, #fdf6e3);
+        --oscd-base02: var(--oscd-theme-base2, #eee8d5);
+        --oscd-base01: var(--oscd-theme-base1, #93a1a1);
+        --oscd-base00: var(--oscd-theme-base0, #839496);
+        --oscd-base0: var(--oscd-theme-base00, #657b83);
+        --oscd-base1: var(--oscd-theme-base01, #586e75);
+        --oscd-base2: var(--oscd-theme-base02, #073642);
+        --oscd-base3: var(--oscd-theme-base03, #002b36);
+      }
+    }
+
+    * {
+      --oscd-error: var(--oscd-theme-error, #dc322f);
+
+      --oscd-text-font: var(--oscd-theme-text-font, 'Roboto');
+      --oscd-icon-font: var(--oscd-theme-icon-font, 'Material Icons');
+
+      --mdc-theme-primary: var(--oscd-primary);
+      --mdc-theme-secondary: var(--oscd-secondary);
+      --mdc-theme-background: var(--oscd-base3);
+      --mdc-theme-surface: var(--oscd-base3);
+      --mdc-theme-on-primary: var(--oscd-base2);
+      --mdc-theme-on-secondary: var(--oscd-base2);
+      --mdc-theme-on-background: var(--oscd-base00);
+      --mdc-theme-on-surface: var(--oscd-base00);
+      --mdc-theme-text-primary-on-background: var(--oscd-base01);
+      --mdc-theme-text-secondary-on-background: var(--oscd-base00);
+      --mdc-theme-text-icon-on-background: var(--oscd-base00);
+      --mdc-theme-error: var(--oscd-error);
+
+      --mdc-button-disabled-ink-color: var(--oscd-base1);
+
+      --mdc-drawer-heading-ink-color: var(--oscd-base00);
+
+      --mdc-dialog-heading-ink-color: var(--oscd-base00);
+
+      --mdc-typography-font-family: var(--oscd-text-font);
+      --mdc-icon-font: var(--oscd-icon-font);
+    }
+
+    mwc-drawer {
+      background-color: var(--mdc-theme-on-primary);
+    }
+
+    mwc-tab {
+      background-color: var(--oscd-primary);
+      --mdc-theme-primary: var(--mdc-theme-on-primary);
+    }
   `;
 __decorate([
     t$1()
