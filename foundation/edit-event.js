@@ -8,7 +8,10 @@ function isNamespaced(value) {
     return value !== null && typeof value !== 'string';
 }
 function isUpdate(edit) {
-    return edit.element !== undefined;
+    return 'element' in edit && !('attributesNS' in edit);
+}
+function isUpdateNS(edit) {
+    return 'element' in edit && 'attributesNS' in edit;
 }
 function isRemove(edit) {
     return (edit.parent === undefined && edit.node !== undefined);
@@ -21,6 +24,16 @@ function newEditEvent(edit) {
     });
 }
 /** EDIT HANDLING */
+function uniqueNSPrefix(element, ns) {
+    let i = 1;
+    const attributes = Array.from(element.attributes);
+    const hasSamePrefix = (attribute) => attribute.prefix === `ens${i}` && attribute.namespaceURI !== ns;
+    const nsOrNull = new Set([null, ns]);
+    const differentNamespace = (prefix) => !nsOrNull.has(element.lookupNamespaceURI(prefix));
+    while (differentNamespace(`ens${i}`) || attributes.find(hasSamePrefix))
+        i += 1;
+    return `ens${i}`;
+}
 function localAttributeName(attribute) {
     return attribute.includes(':') ? attribute.split(':', 2)[1] : attribute;
 }
@@ -86,6 +99,68 @@ function handleUpdate({ element, attributes }) {
         attributes: oldAttributes,
     };
 }
+function handleUpdateNS({ element, attributes, attributesNS, }) {
+    const oldAttributes = { ...attributes };
+    const oldAttributesNS = { ...attributesNS };
+    Object.keys(attributes)
+        .reverse()
+        .forEach(name => {
+        oldAttributes[name] = element.getAttribute(name);
+    });
+    for (const entry of Object.entries(attributes)) {
+        try {
+            const [name, value] = entry;
+            if (value === null)
+                element.removeAttribute(name);
+            else
+                element.setAttribute(name, value);
+        }
+        catch (e) {
+            // do nothing if update doesn't work on this attribute
+            delete oldAttributes[entry[0]];
+        }
+    }
+    Object.entries(attributesNS).forEach(([ns, attrs]) => {
+        Object.keys(attrs)
+            .reverse()
+            .forEach(name => {
+            oldAttributesNS[ns] = {
+                ...oldAttributesNS[ns],
+                [name]: element.getAttributeNS(ns, name),
+            };
+        });
+    });
+    for (const nsEntry of Object.entries(attributesNS)) {
+        const [ns, attrs] = nsEntry;
+        for (const entry of Object.entries(attrs)) {
+            try {
+                const [name, value] = entry;
+                if (value === null)
+                    element.removeAttributeNS(ns, name);
+                else {
+                    let qualifiedName = name;
+                    if (!qualifiedName.includes(':')) {
+                        let prefix = element.lookupPrefix(ns);
+                        if (!prefix)
+                            prefix = uniqueNSPrefix(element, ns);
+                        qualifiedName = `${prefix}:${name}`;
+                    }
+                    element.setAttributeNS(ns, qualifiedName, value);
+                }
+            }
+            catch (e) {
+                delete oldAttributesNS[entry[0]];
+            }
+        }
+    }
+    /*
+     */
+    return {
+        element,
+        attributes: oldAttributes,
+        attributesNS: oldAttributesNS,
+    };
+}
 function handleRemove({ node }) {
     var _a;
     const { parentNode: parent, nextSibling: reference } = node;
@@ -103,6 +178,8 @@ function handleEdit(edit) {
         return handleInsert(edit);
     if (isUpdate(edit))
         return handleUpdate(edit);
+    if (isUpdateNS(edit))
+        return handleUpdateNS(edit);
     if (isRemove(edit))
         return handleRemove(edit);
     if (isComplex(edit))
@@ -110,5 +187,5 @@ function handleEdit(edit) {
     return [];
 }
 
-export { handleEdit, isComplex, isInsert, isNamespaced, isRemove, isUpdate, newEditEvent };
+export { handleEdit, isComplex, isInsert, isNamespaced, isRemove, isUpdate, isUpdateNS, newEditEvent };
 //# sourceMappingURL=edit-event.js.map
