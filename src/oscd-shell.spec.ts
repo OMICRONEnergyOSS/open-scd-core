@@ -7,7 +7,7 @@ import { OscdListItem } from '@omicronenergy/oscd-ui/list/OscdListItem.js';
 import Sinon from 'sinon';
 
 import { newEditEventV2, newOpenEvent } from '@openscd/oscd-api/utils.js';
-import type { OscdShell } from './oscd-shell.js';
+import type { OscdShell, PluginEntry } from './oscd-shell.js';
 
 import { cyrb64 } from './foundation.js';
 import { Plugin } from '@openscd/oscd-api';
@@ -91,8 +91,11 @@ describe('OscdShell', () => {
         .property('editor')
         .to.have.lengthOf(2);
 
-      expect(oscdShell.shadowRoot?.querySelector(oscdShell.editor)).to.not
-        .exist;
+      expect(
+        oscdShell.shadowRoot?.querySelector(
+          (oscdShell.plugins.editor[0] as PluginEntry).tagName,
+        ),
+      ).to.not.exist;
     });
   });
 
@@ -111,8 +114,13 @@ describe('OscdShell', () => {
 
       await waitForAllPluginsToInstantiate(oscdShell);
 
+      await waitUntil(
+        () => oscdShell.selectedEditor !== undefined,
+        'No editor plugin selected',
+      );
+      const selectedEditorTagName = oscdShell.selectedEditor!.tagName;
       editorPlugin = oscdShell.shadowRoot?.querySelector(
-        oscdShell!.editor,
+        selectedEditorTagName,
       ) as HTMLElement & Plugin & { editCount: number };
     });
 
@@ -149,12 +157,13 @@ describe('OscdShell', () => {
       await oscdShell.updateComplete;
 
       await waitUntil(
-        () => isPluginInstanciated(oscdShell.editor, oscdShell),
+        () =>
+          isPluginInstanciated(oscdShell.selectedEditor!.tagName, oscdShell),
         'second editor plugin did not load',
       );
 
       const secondEditorPluginContent = oscdShell.shadowRoot!.querySelector(
-        oscdShell!.editor,
+        oscdShell!.selectedEditor!.tagName,
       );
       expect(
         secondEditorPluginContent?.querySelector('p')?.textContent?.trim(),

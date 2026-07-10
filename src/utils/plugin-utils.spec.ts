@@ -1,5 +1,9 @@
 import { expect } from '@open-wc/testing';
-import { isPlugin, isSourcedPlugin, validatePlugin } from './plugin-utils.js';
+import {
+  isPluginEntry,
+  isSourcedPlugin,
+  validatePlugin,
+} from './plugin-utils.js';
 
 describe('Plugin Utils', () => {
   describe('isPlugin', () => {
@@ -10,7 +14,7 @@ describe('Plugin Utils', () => {
         icon: 'test-icon',
         requireDoc: false,
       };
-      expect(plugin).satisfies(isPlugin);
+      expect(plugin).satisfies(isPluginEntry);
     });
 
     it('should return false for an object without tagName', () => {
@@ -19,7 +23,7 @@ describe('Plugin Utils', () => {
         icon: 'test-icon',
         requireDoc: false,
       };
-      expect(plugin).to.not.satisfy(isPlugin);
+      expect(plugin).to.not.satisfy(isPluginEntry);
     });
 
     it('should return false for a SourcePlugin', () => {
@@ -28,7 +32,7 @@ describe('Plugin Utils', () => {
         icon: 'test-icon',
         src: 'data:text/javascript;charset=utf-8,import%20%7B%20default%20as%20TestPlugin%20%7D%20from%20"./test-plugin.js";',
       };
-      expect(plugin).to.not.satisfy(isPlugin);
+      expect(plugin).to.not.satisfy(isPluginEntry);
     });
   });
 

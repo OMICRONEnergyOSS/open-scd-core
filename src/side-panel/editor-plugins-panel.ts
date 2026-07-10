@@ -31,7 +31,7 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
   editors: PluginEntry[] = [];
 
   @property({ type: Number })
-  editorIndex = 0;
+  selectedPlugin?: PluginEntry;
 
   @property({ type: String })
   locale!: LocaleTag;
@@ -53,7 +53,7 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
         ${this.editors.map(
           (editor, index) =>
             html`<oscd-list-item
-              class=${classMap({ active: this.editorIndex === index })}
+              class=${classMap({ active: this.selectedPlugin === editor })}
               type="button"
               @click=${() => {
                 this.dispatchEvent(
