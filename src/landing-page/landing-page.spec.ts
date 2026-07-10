@@ -12,6 +12,7 @@ import {
 } from '../utils/testing/plugin-helpers.js';
 import sinon from 'sinon';
 import { OscdTextButton } from '@omicronenergy/oscd-ui/button/OscdTextButton.js';
+import { flattenPluginEntries } from '../utils/plugin-utils.js';
 
 const testHeading = 'Test Heading';
 const testSubHeading = 'Test Subheading';
@@ -63,9 +64,9 @@ describe('default landing-page', () => {
   });
 
   it('renders all menu plugins, not requiring a document, as large tiles (buttons)', async () => {
-    const menuPluginsNotRequiringDoc = oscdShell.plugins.menu.filter(
-      plugin => !plugin.requireDoc,
-    );
+    const menuPluginsNotRequiringDoc = flattenPluginEntries(
+      oscdShell.plugins.menu,
+    ).filter(plugin => !plugin.requireDoc);
     const menuPluginElements =
       landingPage.shadowRoot!.querySelectorAll('.menu-plugin-item');
 

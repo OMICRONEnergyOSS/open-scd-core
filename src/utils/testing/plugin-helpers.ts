@@ -1,6 +1,7 @@
 /* eslint-disable import-x/no-extraneous-dependencies */
 import { waitUntil } from '@open-wc/testing';
-import { OscdShell, PluginEntry } from '../../oscd-shell.js';
+import { OscdShell, PluginEntry, PluginGroup } from '../../oscd-shell.js';
+import { flattenPluginEntries } from '../plugin-utils.js';
 
 export const sampleMenuPlugins: (Omit<PluginEntry, 'tagName'> & {
   tagName?: string;
@@ -44,6 +45,15 @@ export const sampleEditorPlugins: (Omit<PluginEntry, 'tagName'> & {
   },
 ];
 
+export function findPluginByTagName(
+  pluginSet: (PluginEntry | PluginGroup<PluginEntry>)[],
+  tagName: string,
+): PluginEntry | undefined {
+  return flattenPluginEntries(pluginSet).find(
+    plugin => plugin.tagName === tagName,
+  );
+}
+
 export const isPluginInstanciated = (
   pluginTagName: string,
   shell: OscdShell,
@@ -57,9 +67,9 @@ export const waitForPluginInstanciation = async (
 ): Promise<void> =>
   waitUntil(
     () => isPluginInstanciated(plugin.tagName, shell),
-    `Plugin: "${plugin.name}" <${plugin.tagName}> failed to load. 
-      CustomElements Registered: ${shell.registry?.get(plugin.tagName) ? 'Yes' : 'No (at least not in the OscdShell registry)'}, 
-      Found in DOM: ${shell.shadowRoot?.querySelector(plugin.tagName) ? 'Yes' : 'No'}, 
+    `Plugin: "${plugin.name}" <${plugin.tagName}> failed to load.
+      CustomElements Registered: ${shell.registry?.get(plugin.tagName) ? 'Yes' : 'No (at least not in the OscdShell registry)'},
+      Found in DOM: ${shell.shadowRoot?.querySelector(plugin.tagName) ? 'Yes' : 'No'},
       requiresDoc?: ${plugin.requireDoc}
       loadedDocName?: ${shell.docName}`,
   );
@@ -85,11 +95,12 @@ export const waitForPluginsToInstantiate = async (
 export const waitForAllPluginsToInstantiate = async (shell: OscdShell) => {
   const docLoaded = !!shell.docName;
 
-  const editorPlugin = shell.plugins.editor.find(
-    editor => editor.tagName === shell.editor,
-  );
+  const editorPlugin =
+    docLoaded && shell.selectedEditor
+      ? findPluginByTagName(shell.plugins.editor, shell.selectedEditor.tagName)
+      : undefined;
 
-  const menuPlugins = shell.plugins.menu.filter(
+  const menuPlugins = flattenPluginEntries(shell.plugins.menu).filter(
     plugin => !plugin.requireDoc || docLoaded,
   );
   const backgroundPlugins = shell.plugins.background.filter(
@@ -99,7 +110,7 @@ export const waitForAllPluginsToInstantiate = async (shell: OscdShell) => {
   const allPlugins: PluginEntry[] = [
     ...menuPlugins,
     ...backgroundPlugins,
-    ...(docLoaded && editorPlugin ? [editorPlugin] : []),
+    ...(editorPlugin ? [editorPlugin] : []),
   ];
 
   return allPlugins.length > 0

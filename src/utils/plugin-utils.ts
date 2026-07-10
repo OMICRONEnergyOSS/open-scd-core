@@ -1,5 +1,10 @@
 import { cyrb64 } from '../foundation/cyrb64.js';
-import { PluginEntry, SourcedPluginEntry } from '../oscd-shell.js';
+import {
+  PluginBase,
+  PluginEntry,
+  PluginGroup,
+  SourcedPluginEntry,
+} from '../oscd-shell.js';
 
 const pluginTags = new Map<string, string>();
 
@@ -14,6 +19,41 @@ function pluginTag(uri: string): string {
     pluginTags.set(uri, `oscd-p${cyrb64(uri)}`);
   }
   return pluginTags.get(uri)!;
+}
+
+export type AnyPluginEntry = PluginEntry | SourcedPluginEntry;
+
+/**
+ * Helper fn to filter root plugins and grouped plugins, whilst preserving the structure.
+ */
+export function filterPlugins(
+  pluginItems: (PluginEntry | PluginGroup<PluginEntry>)[],
+  predicate: (plugin: PluginEntry) => boolean,
+): (PluginEntry | PluginGroup<PluginEntry>)[] {
+  return pluginItems
+    .map(item =>
+      isPluginGroup(item)
+        ? {
+            ...item,
+            plugins: item.plugins.filter(predicate),
+          }
+        : item,
+    )
+    .filter(item =>
+      //remove empty groups or plugins which don't match the predicate
+      isPluginGroup(item) ? item.plugins.length > 0 : predicate(item),
+    );
+}
+
+/**
+ * Returns a flattened array of all plugin entries from a given PluginSet, including those nested within PluginGroups.
+ */
+export function flattenPluginEntries<P extends PluginBase = PluginEntry>(
+  pluginSet: (P | PluginGroup<P>)[],
+): P[] {
+  return pluginSet.flatMap(item =>
+    isPluginGroup<P>(item) ? item.plugins : [item],
+  );
 }
 
 /**
@@ -40,31 +80,42 @@ function generateErrorWcClass(plugin: Partial<PluginEntry>) {
   return new Function(classString)();
 }
 
+export function isPluginGroup<P extends PluginBase = PluginEntry>(
+  item: unknown,
+): item is PluginGroup<P> {
+  return (
+    typeof item === 'object' &&
+    item !== null &&
+    'plugins' in item &&
+    Array.isArray((item as PluginGroup<P>).plugins)
+  );
+}
+
 /**
  * Checks if the given object is a valid Plugin.
- * @param plugin - The object to check.
+ * @param item - The object to check.
  * @returns true if the object is a Plugin, false otherwise.
  */
-export function isPlugin(plugin: unknown): plugin is PluginEntry {
+export function isPluginEntry(item: unknown): item is PluginEntry {
   return (
-    typeof plugin === 'object' &&
-    plugin !== null &&
-    'tagName' in plugin &&
-    typeof plugin.tagName === 'string'
+    typeof item === 'object' &&
+    item !== null &&
+    'tagName' in item &&
+    typeof item.tagName === 'string'
   );
 }
 
 /**
  * Checks if the given object is a SourcedPlugin.
- * @param plugin - The object to check.
+ * @param item - The object to check.
  * @returns true if the object is a SourcedPlugin, false otherwise.
  */
-export function isSourcedPlugin(plugin: unknown): plugin is SourcedPluginEntry {
+export function isSourcedPlugin(item: unknown): item is SourcedPluginEntry {
   return (
-    typeof plugin === 'object' &&
-    plugin !== null &&
-    'src' in plugin &&
-    typeof plugin.src === 'string'
+    typeof item === 'object' &&
+    item !== null &&
+    'src' in item &&
+    typeof item.src === 'string'
   );
 }
 
@@ -76,7 +127,7 @@ export function isSourcedPlugin(plugin: unknown): plugin is SourcedPluginEntry {
  */
 export function validatePlugin(plugin: unknown): PluginEntry | undefined {
   const missingFields = [];
-  if (!isPlugin(plugin)) {
+  if (!isPluginEntry(plugin)) {
     missingFields.push('tagName');
   }
 
@@ -123,7 +174,14 @@ export function loadSourcedPlugins(
 ): PluginEntry[] {
   return plugins
     .map(plugin => {
-      if (isPlugin(plugin)) {
+      if (isPluginGroup(plugin)) {
+        return {
+          ...plugin,
+          plugins: loadSourcedPlugins(plugin.plugins, registry),
+        };
+      }
+
+      if (isPluginEntry(plugin)) {
         return validatePlugin(plugin);
       }
       if (!isSourcedPlugin(plugin)) {

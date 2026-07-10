@@ -13,31 +13,44 @@ import OscdEditorSource from '@omicronenergy/oscd-editor-source';
 const plugins = {
   menu: [
     {
-      name: 'Open...',
-      translations: { de: 'Datei öffnen' },
-      icon: 'folder_open',
-      tagName: 'oscd-menu-open',
+      name: 'Files',
+      icon: 'folder',
+      plugins: [
+        {
+          name: 'Open...',
+          translations: { de: 'Datei öffnen' },
+          icon: 'folder_open',
+          tagName: 'oscd-menu-open',
+        },
+        {
+          name: 'New File...',
+          translations: { de: 'Neu Datei' },
+          icon: 'note_add',
+          tagName: 'oscd-menu-new',
+        },
+      ],
     },
     {
-      name: 'New File...',
-      translations: { de: 'Neu Datei' },
-      icon: 'note_add',
-      tagName: 'oscd-menu-new',
+      name: 'Files',
+      icon: 'folder',
+      plugins: [
+        {
+          name: 'Save...',
+          translations: { de: 'Datei speichern' },
+          icon: 'save',
+          requireDoc: true,
+          tagName: 'oscd-menu-save',
+        },
+        {
+          name: 'Rename...',
+          translations: { de: 'Datei umbenenen' },
+          icon: 'edit',
+          requireDoc: true,
+          src: 'https://omicronenergyoss.github.io/oscd-menu-commons/oscd-menu-file-rename.js',
+        },
+      ],
     },
-    {
-      name: 'Save...',
-      translations: { de: 'Datei speichern' },
-      icon: 'save',
-      requireDoc: true,
-      tagName: 'oscd-menu-save',
-    },
-    {
-      name: 'Rename...',
-      translations: { de: 'Datei umbenenen' },
-      icon: 'edit',
-      requireDoc: true,
-      src: 'https://omicronenergyoss.github.io/oscd-menu-commons/oscd-menu-file-rename.js',
-    },
+
     {
       name: 'Close',
       translations: { de: 'Schließen' },
@@ -62,13 +75,18 @@ const plugins = {
       requireDoc: true,
       src: 'https://omicronenergyoss.github.io/oscd-editor-sld/oscd-editor-sld.js',
     },
-
     {
-      name: 'Source Editor',
-      translations: { de: 'Source Editor' },
-      icon: 'code',
-      requireDoc: true,
-      tagName: 'oscd-editor-source',
+      name: 'Advanced',
+      icon: 'folder',
+      plugins: [
+        {
+          name: 'Source Editor',
+          translations: { de: 'Source Editor' },
+          icon: 'code',
+          requireDoc: true,
+          tagName: 'oscd-editor-source',
+        },
+      ],
     },
   ],
   background: [

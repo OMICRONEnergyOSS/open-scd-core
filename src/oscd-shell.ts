@@ -14,7 +14,11 @@ import { OscdFilledIconButton } from '@omicronenergy/oscd-ui/iconbutton/OscdFill
 import { XMLEditor } from '@openscd/oscd-editor';
 import { EditEventV2, OpenEvent } from '@openscd/oscd-api';
 
-import { loadSourcedPlugins } from './utils/plugin-utils.js';
+import {
+  flattenPluginEntries,
+  isPluginGroup,
+  loadSourcedPlugins,
+} from './utils/plugin-utils.js';
 import {
   getLocale,
   LocaleTag,
@@ -30,7 +34,7 @@ import { oscdShellDesignTokens } from './oscd-shell-design-tokens.js';
 import { OscdAppBar } from '@omicronenergy/oscd-ui/app-bar/OscdAppBar.js';
 import { OscdIcon } from '@omicronenergy/oscd-ui/icon/OscdIcon.js';
 
-export type PluginEntry = {
+export type PluginEntryOld = {
   name: string;
   translations?: Translations;
   tagName: string;
@@ -38,18 +42,31 @@ export type PluginEntry = {
   requireDoc?: boolean;
 };
 
-export type SourcedPluginEntry = {
+export interface PluginBase {
   name: string;
-  translations?: Translations;
-  src: string;
+  translations?: Record<string, string>;
   icon: string;
+}
+
+export interface SourcedPluginEntry extends PluginBase {
+  src: string;
   requireDoc?: boolean;
-};
-export type PluginSet<P = PluginEntry> = {
-  menu: P[];
-  editor: P[];
+}
+
+export interface PluginEntry extends PluginBase {
+  tagName: string;
+  requireDoc?: boolean;
+}
+
+export interface PluginGroup<P> extends PluginBase {
+  plugins: P[];
+}
+
+export interface PluginSet<P = PluginEntry> {
+  menu: (P | PluginGroup<P>)[];
+  editor: (P | PluginGroup<P>)[];
   background: P[];
-};
+}
 
 @localized()
 @customElement('oscd-shell')
@@ -143,12 +160,7 @@ export class OscdShell extends ScopedElementsMixin(LitElement) {
   }
 
   @state()
-  get editor() {
-    return this.plugins.editor[this.editorIndex]?.tagName ?? '';
-  }
-
-  @state()
-  private editorIndex = 0;
+  selectedEditor?: PluginEntry;
 
   @state()
   /** The `XMLDocument` currently being edited */
@@ -170,7 +182,7 @@ export class OscdShell extends ScopedElementsMixin(LitElement) {
 
   set docs(newDocs: Record<string, XMLDocument>) {
     this._docs = newDocs;
-    this.onDocsChanged();
+    this.docVersion += 1;
   }
 
   @state()
@@ -211,6 +223,23 @@ export class OscdShell extends ScopedElementsMixin(LitElement) {
     this.xmlEditor.subscribe(() => {
       this.docVersion += 1;
     });
+  }
+
+  willUpdate(changedProperties: Map<PropertyKey, unknown>) {
+    if (changedProperties.has('docName')) {
+      if (
+        this.docName &&
+        this.plugins.editor.length > 0 &&
+        !this.selectedEditor
+      ) {
+        const firstEditorItem = this.plugins.editor[0];
+        if (isPluginGroup(firstEditorItem)) {
+          this.selectedEditor = firstEditorItem.plugins[0];
+        } else {
+          this.selectedEditor = firstEditorItem;
+        }
+      }
+    }
   }
 
   connectedCallback() {
@@ -303,6 +332,14 @@ export class OscdShell extends ScopedElementsMixin(LitElement) {
     this.pluginsMenu.open();
   };
 
+  handlePluginMenuSelect(customEvent: CustomEvent) {
+    const plugin = customEvent.detail.plugin as PluginEntry;
+    if (plugin.tagName) {
+      this.shadowRoot!.querySelector<
+        HTMLElement & { run: () => Promise<void> }
+      >(plugin.tagName)!.run?.();
+    }
+  }
   /** Undo the last `n` [[Edit]]s committed */
   undo = (n = 1) => {
     if (!this.canUndo || n < 1) {
@@ -340,44 +377,31 @@ export class OscdShell extends ScopedElementsMixin(LitElement) {
     );
   }
 
-  onDocsChanged() {
-    this.docVersion += 1;
-  }
-
-  renderPlugin(tagName: string) {
-    const tag = unsafeStatic(tagName);
-    return staticHtml`<${tag} 
+  renderPlugin(plugin: PluginEntry) {
+    const tag = unsafeStatic(plugin.tagName);
+    return staticHtml`<${tag}
               .locale="${this.locale}"
               .docName="${this.docName}"
               .doc=${this.doc}
-              .docs=${this.docs} 
+              .docs=${this.docs}
               .editCount=${this.docVersion}
               .docVersion=${this.docVersion}
               .editor=${this.xmlEditor}>
             </${tag}>`;
   }
 
-  onMenuPluginSelect(customEvent: CustomEvent) {
-    const plugin = customEvent.detail.plugin as PluginEntry;
-    if (plugin.tagName) {
-      this.shadowRoot!.querySelector<
-        HTMLElement & { run: () => Promise<void> }
-      >(plugin.tagName)!.run?.();
-    }
-  }
-
   renderOffScreenPlugins() {
     return html`
       <section class="off-screen-plugin-container" aria-hidden="true">
         <div class="menu-plugins">
-          ${this.plugins.menu
+          ${flattenPluginEntries(this.plugins.menu)
             .filter(plugin => !plugin.requireDoc || !!this.docName)
-            .map(plugin => this.renderPlugin(plugin.tagName))}
+            .map(plugin => this.renderPlugin(plugin))}
         </div>
         <div class="background-plugins">
           ${this.plugins.background
             .filter(plugin => !plugin.requireDoc || !!this.docName)
-            .map(plugin => this.renderPlugin(plugin.tagName))}
+            .map(plugin => this.renderPlugin(plugin))}
         </div>
       </section>
     `;
@@ -388,12 +412,12 @@ export class OscdShell extends ScopedElementsMixin(LitElement) {
       <landing-page
         heading=${this.landingPageHeading}
         subHeading=${this.landingPageSubHeading}
-        .menuPlugins=${this.plugins.menu.filter(
+        .menuPlugins=${flattenPluginEntries(this.plugins.menu).filter(
           plugin => !plugin.requireDoc || !!this.docName,
         )}
         .locale=${this.locale}
         @menu-plugin-select=${(event: CustomEvent) =>
-          this.onMenuPluginSelect(event)}
+          this.handlePluginMenuSelect(event)}
       >
       </landing-page>
     `;
@@ -419,7 +443,7 @@ export class OscdShell extends ScopedElementsMixin(LitElement) {
           .menuPlugins=${this.plugins.menu}
           .locale=${this.locale}
           @menu-plugin-select=${(event: CustomEvent) =>
-            this.onMenuPluginSelect(event)}
+            this.handlePluginMenuSelect(event)}
         ></plugins-menu>
 
         <files-menu
@@ -467,16 +491,18 @@ export class OscdShell extends ScopedElementsMixin(LitElement) {
         <section class="editors-side-panel-section">
           <editor-plugins-panel
             .editors=${this.plugins.editor}
-            .editorIndex=${this.editorIndex}
+            .selectedEditor=${this.selectedEditor}
             .locale=${this.locale}
             @editor-select=${(e: CustomEvent) => {
-              this.editorIndex = e.detail.index;
+              this.selectedEditor = e.detail.editor;
             }}
           ></editor-plugins-panel>
         </section>
 
         <section class="editor-container">
-          ${this.editor ? this.renderPlugin(this.editor) : nothing}
+          ${this.selectedEditor
+            ? this.renderPlugin(this.selectedEditor)
+            : nothing}
         </section>
 
         ${this.renderOffScreenPlugins()}
