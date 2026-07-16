@@ -3,7 +3,7 @@ import { getFirstTextNodeContent } from '@omicronenergy/oscd-test-utils';
 
 import './oscd-shell.js';
 
-import { OscdListItem } from '@omicronenergy/oscd-ui/list/OscdListItem.js';
+import { OscdTreeItem } from '@omicronenergy/oscd-ui/tree/OscdTreeItem.js';
 import Sinon from 'sinon';
 
 import { newEditEventV2, newOpenEvent } from '@openscd/oscd-api/utils.js';
@@ -31,8 +31,10 @@ import {
   openDocOnShell,
 } from './utils/testing/test-doc-helpers.js';
 
-const getIndexOfSelectedEditor = (editorItems: OscdListItem[]) => {
-  return editorItems.findIndex(item => item.classList.contains('active'));
+const getIndexOfSelectedEditor = (editorItems: OscdTreeItem[]) => {
+  return editorItems.findIndex(
+    item => item.closest('.row')?.getAttribute('data-selected') === 'true',
+  );
 };
 
 describe('OscdShell', () => {
@@ -129,18 +131,25 @@ describe('OscdShell', () => {
         'editor-plugins-panel',
       ) as EditorPluginsPanel;
 
-      const editorItems = Array.from(
-        editorPluginsSidePanel.shadowRoot?.querySelectorAll('oscd-list-item') ??
-          [],
-      ) as OscdListItem[];
-
       //Pre-checks...
       expect(editorPluginsSidePanel).to.exist;
+
+      const editorsTree = editorPluginsSidePanel.shadowRoot?.querySelector(
+        'oscd-tree.editors-tree',
+      ) as HTMLElement;
+      expect(editorsTree).to.exist;
+
+      const queryEditorItems = () =>
+        Array.from(
+          editorsTree.shadowRoot?.querySelectorAll('oscd-tree-item') ?? [],
+        ) as OscdTreeItem[];
+
+      const editorItems = queryEditorItems();
 
       //expect there to be two editor entries
       expect(editorItems.length).to.equal(2);
 
-      //expect first item to be active
+      //expect first item to be selected
       expect(getIndexOfSelectedEditor(editorItems)).to.equal(0);
 
       expect(
@@ -168,7 +177,11 @@ describe('OscdShell', () => {
       expect(
         secondEditorPluginContent?.querySelector('p')?.textContent?.trim(),
       ).to.equal('Test Editor Plugin2');
-      expect(getIndexOfSelectedEditor(editorItems)).to.equal(1);
+      await waitUntil(
+        () => getIndexOfSelectedEditor(queryEditorItems()) === 1,
+        'selected editor did not move to second item',
+      );
+      expect(getIndexOfSelectedEditor(queryEditorItems())).to.equal(1);
     });
 
     it('passes attribute locale', () => {
@@ -368,7 +381,7 @@ describe('OscdShell', () => {
       };
       await oscdShell.updateComplete;
 
-      waitForAllPluginsToInstantiate(oscdShell);
+      await waitForAllPluginsToInstantiate(oscdShell);
 
       menuItemStrings = Array.from(
         oscdShell?.pluginsMenu?.shadowRoot?.querySelectorAll(
@@ -376,10 +389,19 @@ describe('OscdShell', () => {
         ) || [],
       ).map(span => (span as Element).textContent?.trim() || '');
 
+      const editorsTree =
+        oscdShell?.editorPluginsPanel?.shadowRoot?.querySelector(
+          'oscd-tree.editors-tree',
+        );
+      await waitUntil(
+        () =>
+          (editorsTree?.shadowRoot?.querySelectorAll('oscd-tree-item')
+            ?.length ?? 0) > 0,
+        'editor items did not render',
+      );
       editorTabStrings = Array.from(
-        oscdShell?.editorPluginsPanel?.shadowRoot?.querySelectorAll(
-          '.editors-list oscd-list-item > span',
-        ) || [],
+        editorsTree?.shadowRoot?.querySelectorAll('oscd-tree-item > span') ||
+          [],
       ).map(
         tab =>
           Array.from((tab as Element).childNodes)
@@ -412,10 +434,13 @@ describe('OscdShell', () => {
     });
 
     it('the editor plugin appears in german', () => {
+      const editorsTree =
+        oscdShell.editorPluginsPanel.shadowRoot?.querySelector(
+          'oscd-tree.editors-tree',
+        );
       const untranslatedStrings = Array.from(
-        oscdShell.editorPluginsPanel.shadowRoot?.querySelectorAll(
-          'oscd-list-item > span',
-        ) || [],
+        editorsTree?.shadowRoot?.querySelectorAll('oscd-tree-item > span') ||
+          [],
       )
         .map(span => (span as Element).textContent?.trim() || '')
         .filter((text: string) => editorTabStrings.includes(text));

@@ -14,6 +14,30 @@
   <source>Menu</source>
   <target>Menü</target>
 </trans-unit>
+<trans-unit id="s44851a8adf059eef">
+  <source>Pinned</source>
+  <target>Angeheftet</target>
+</trans-unit>
+<trans-unit id="sf8256ec799969cb7">
+  <source>Unpin <x id="0" equiv-text="${node.name}"/></source>
+  <target><x id="0" equiv-text="${node.name}"/> lösen</target>
+</trans-unit>
+<trans-unit id="sd1fdd3cc8714d686">
+  <source>Pin <x id="0" equiv-text="${node.name}"/></source>
+  <target><x id="0" equiv-text="${node.name}"/> anheften</target>
+</trans-unit>
+<trans-unit id="s5d929ff1619ac0c9">
+  <source>Search</source>
+  <target>Suche</target>
+</trans-unit>
+<trans-unit id="s8f10b4e57121e256">
+  <source>Collapse sidebar</source>
+  <target>Seitenleiste einklappen</target>
+</trans-unit>
+<trans-unit id="s7293d04c5979a8ad">
+  <source>Expand sidebar</source>
+  <target>Seitenleiste ausklappen</target>
+</trans-unit>
 </body>
 </file>
 </xliff>
