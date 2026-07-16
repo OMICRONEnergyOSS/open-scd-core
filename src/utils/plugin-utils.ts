@@ -57,6 +57,45 @@ export function flattenPluginEntries<P extends PluginBase = PluginEntry>(
 }
 
 /**
+ * Filters plugins by a search term, matching (case-insensitively) against the
+ * leaf plugin names only - group names are intentionally not matched. When a
+ * `locale` is given, the plugin's localized label (`translations[locale]`) is
+ * also matched, so users can search by the label they see. The group structure
+ * is preserved and empty groups are dropped. An empty or whitespace-only term
+ * returns the plugins unchanged.
+ */
+export function filterBySearchTerm(
+  editors: (PluginEntry | PluginGroup<PluginEntry>)[],
+  searchTerm: string,
+  locale?: string,
+): (PluginEntry | PluginGroup<PluginEntry>)[] {
+  const term = searchTerm.trim().toLowerCase();
+  if (!term) {
+    return editors;
+  }
+  return filterPlugins(editors, plugin => {
+    const localizedName = locale ? plugin.translations?.[locale] : undefined;
+    return (
+      plugin.name.toLowerCase().includes(term) ||
+      !!localizedName?.toLowerCase().includes(term)
+    );
+  });
+}
+
+/**
+ * Flattens plugins (including those nested within groups) and returns the leaf
+ * entries whose tagName is included in the given pinnedIds.
+ */
+export function filterByPinned(
+  editors: (PluginEntry | PluginGroup<PluginEntry>)[],
+  pinnedIds: string[],
+): PluginEntry[] {
+  return flattenPluginEntries(editors).filter(plugin =>
+    pinnedIds.includes(plugin.tagName),
+  );
+}
+
+/**
  * Generates a Web Component class that displays an error message when a plugin fails to load.
  * This is used to provide feedback to the Distro developer when a plugin cannot be loaded due to an error.
  * @param plugin - The plugin object that failed to load.

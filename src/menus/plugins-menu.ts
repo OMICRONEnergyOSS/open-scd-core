@@ -6,10 +6,12 @@ import { localized, msg } from '@lit/localize';
 import { OscdFilledIconButton } from '@omicronenergy/oscd-ui/iconbutton/OscdFilledIconButton.js';
 import { OscdIcon } from '@omicronenergy/oscd-ui/icon/OscdIcon.js';
 import { OscdMenu } from '@omicronenergy/oscd-ui/menu/OscdMenu.js';
+import { OscdSubMenu } from '@omicronenergy/oscd-ui/menu/OscdSubMenu.js';
 import { OscdMenuItem } from '@omicronenergy/oscd-ui/menu/OscdMenuItem.js';
 
 import { LocaleTag, Translation } from '../localization.js';
-import { PluginEntry } from '../oscd-shell.js';
+import { PluginEntry, PluginGroup } from '../oscd-shell.js';
+import { isPluginGroup } from '../utils/plugin-utils.js';
 
 declare global {
   interface HTMLElementTagNameMap {
@@ -23,6 +25,7 @@ export class PluginsMenu extends ScopedElementsMixin(LitElement) {
     'oscd-filled-icon-button': OscdFilledIconButton,
     'oscd-icon': OscdIcon,
     'oscd-menu': OscdMenu,
+    'oscd-sub-menu': OscdSubMenu,
     'oscd-menu-item': OscdMenuItem,
   };
 
@@ -51,10 +54,29 @@ export class PluginsMenu extends ScopedElementsMixin(LitElement) {
   @query('oscd-menu')
   menu!: OscdMenu;
 
-  renderMenuItem(plugin: PluginEntry, disabled: boolean) {
+  renderMenuGroup(plugin: PluginGroup<PluginEntry>, hasDoc: boolean) {
+    return html`
+      <oscd-sub-menu>
+        <oscd-menu-item slot="item">
+          <oscd-icon slot="start">${plugin.icon}</oscd-icon>
+          <div slot="headline">
+            ${plugin.translations?.[this.locale as Translation] || plugin.name}
+          </div>
+          <oscd-icon slot="end">arrow_right</oscd-icon>
+        </oscd-menu-item>
+        <oscd-menu slot="menu">
+          ${plugin.plugins.map(plugin => {
+            return this.renderMenuItem(plugin, hasDoc);
+          })}
+        </oscd-menu>
+      </oscd-sub-menu>
+    `;
+  }
+
+  renderMenuItem(plugin: PluginEntry, hasDoc: boolean) {
     return html`
       <oscd-menu-item
-        .disabled=${disabled}
+        .disabled=${!!plugin.requireDoc && !hasDoc}
         @click=${() => {
           this.dispatchEvent(
             new CustomEvent('menu-plugin-select', {
@@ -91,17 +113,20 @@ export class PluginsMenu extends ScopedElementsMixin(LitElement) {
         ><oscd-icon>arrow_drop_down_circle</oscd-icon></oscd-filled-icon-button
       >
       <oscd-menu
+        has-overflow
         quick
         anchor="menu-button"
         menuCorner="START_END"
         anchorCorner="START_END"
       >
-        ${this.menuPlugins.map(plugin =>
-          this.renderMenuItem(
-            plugin,
-            !!(plugin.requireDoc && (this.editableDocs ?? []).length === 0),
-          ),
-        )}
+        ${this.menuPlugins.map(plugin => {
+          const hasDoc = (this.editableDocs ?? []).length > 0;
+
+          if (isPluginGroup(plugin)) {
+            return this.renderMenuGroup(plugin, hasDoc);
+          }
+          return this.renderMenuItem(plugin, hasDoc);
+        })}
       </oscd-menu>
     `;
   }

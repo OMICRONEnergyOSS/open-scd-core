@@ -58,11 +58,20 @@ export interface PluginEntry extends PluginBase {
   requireDoc?: boolean;
 }
 
-export interface PluginGroup<P> extends PluginBase {
+/**
+ * The unvalidated plugin shape accepted at the `plugins` setter boundary.
+ * Fields are optional and either `tagName` or `src` may be present; the
+ * concrete kind is resolved and validated later by `loadSourcedPlugins`.
+ */
+export type InputPluginEntry = Partial<PluginEntry & SourcedPluginEntry>;
+
+export interface PluginGroup<
+  P extends Partial<PluginBase> = PluginEntry,
+> extends PluginBase {
   plugins: P[];
 }
 
-export interface PluginSet<P = PluginEntry> {
+export interface PluginSet<P extends Partial<PluginBase> = PluginEntry> {
   menu: (P | PluginGroup<P>)[];
   editor: (P | PluginGroup<P>)[];
   background: P[];
@@ -133,9 +142,7 @@ export class OscdShell extends ScopedElementsMixin(LitElement) {
     return this._plugins;
   }
 
-  set plugins(
-    plugins: Partial<PluginSet<Partial<PluginEntry | SourcedPluginEntry>>>,
-  ) {
+  set plugins(plugins: Partial<PluginSet<InputPluginEntry>>) {
     this._plugins = Object.entries(plugins).reduce(
       (acc, [pluginType, kind]) => {
         const convertedPlugins = loadSourcedPlugins(kind, this.registry!);
@@ -226,7 +233,7 @@ export class OscdShell extends ScopedElementsMixin(LitElement) {
   }
 
   willUpdate(changedProperties: Map<PropertyKey, unknown>) {
-    if (changedProperties.has('docName')) {
+    if (changedProperties.has('docName') || changedProperties.has('plugins')) {
       if (
         this.docName &&
         this.plugins.editor.length > 0 &&
