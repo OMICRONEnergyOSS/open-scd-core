@@ -552,26 +552,18 @@ export class OscdShell extends ScopedElementsMixin(LitElement) {
       main {
         grid-area: main;
         display: grid;
-        grid-template-columns: var(--side-panel-width) 1fr;
+        /* The side-panel column follows the panel's own intrinsic width, which
+           the panel switches between its expanded (308px) and collapsed rail
+           (76px) states. */
+        grid-template-columns: auto 1fr;
         grid-template-areas: 'sidebar editor';
         overflow: hidden;
-      }
-
-      /* Side panel collapsed state */
-      main.sidebar-collapsed {
-        grid-template-columns: 0 1fr;
       }
 
       section.editors-side-panel-section {
         grid-area: sidebar;
         overflow-y: auto;
         overflow-x: hidden;
-        transition: transform 0.3s ease-in-out;
-      }
-
-      /* Hide side panel when collapsed */
-      main.sidebar-collapsed section.editors-side-panel-section {
-        transform: translateX(-100%);
       }
 
       section.editor-container {

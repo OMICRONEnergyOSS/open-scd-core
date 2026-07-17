@@ -4,14 +4,13 @@ import '../oscd-shell.js';
 import { EditorPluginsPanel } from './editor-plugins-panel.js';
 import type { PluginEntry } from '../oscd-shell.js';
 import { createTestDocs } from '../utils/testing/test-doc-helpers.js';
-import { OscdFilledIconButton } from '@omicronenergy/oscd-ui/iconbutton/OscdFilledIconButton.js';
 import { sampleEditorPlugins } from '../utils/testing/plugin-helpers.js';
 import { TestMenuPlugin1 } from '../utils/testing/test-plugins.js';
 
 const findPanelToggleButton = (pluginsMenu: EditorPluginsPanel) => {
   const toggleButton = pluginsMenu.shadowRoot?.querySelector(
-    'oscd-icon-button.toggle-button',
-  ) as OscdFilledIconButton;
+    '.toggle-button',
+  ) as HTMLElement;
   expect(toggleButton).to.exist;
   return toggleButton;
 };
@@ -92,12 +91,11 @@ describe('editor-plugins-panel', () => {
   });
 
   it('expands on toggle button click when already collapsed', async () => {
-    const toggleButton = findPanelToggleButton(editorPluginsPanel);
-    expect(isPanelExpanded(editorPluginsPanel)).to.be.true;
-    toggleButton.click();
+    findPanelToggleButton(editorPluginsPanel).click();
     await editorPluginsPanel.updateComplete;
     expect(isPanelExpanded(editorPluginsPanel)).to.be.false;
-    toggleButton.click();
+    // The control is a different element in the collapsed rail, so re-query it.
+    findPanelToggleButton(editorPluginsPanel).click();
     await editorPluginsPanel.updateComplete;
     expect(isPanelExpanded(editorPluginsPanel)).to.be.true;
   });
@@ -113,17 +111,17 @@ describe('editor-plugins-panel', () => {
   });
 
   it('saves expanded/collapsed state (when toggled) in localStorage', async () => {
-    const toggleButton = findPanelToggleButton(editorPluginsPanel);
     expect(isPanelExpanded(editorPluginsPanel)).to.be.true;
 
-    toggleButton.click();
+    findPanelToggleButton(editorPluginsPanel).click();
     await editorPluginsPanel.updateComplete;
     expect(isPanelExpanded(editorPluginsPanel)).to.be.false;
     expect(localStorage.getItem(LS_KEYS.expanded)).to.equal(
       JSON.stringify(false),
     );
 
-    toggleButton.click();
+    // Re-query: the collapsed rail renders a different toggle element.
+    findPanelToggleButton(editorPluginsPanel).click();
     await editorPluginsPanel.updateComplete;
     expect(isPanelExpanded(editorPluginsPanel)).to.be.true;
     expect(localStorage.getItem(LS_KEYS.expanded)).to.equal(

@@ -1,10 +1,14 @@
 import { css, html, LitElement, nothing } from 'lit';
 import { property, state } from 'lit/decorators.js';
+import { classMap } from 'lit/directives/class-map.js';
 import { ScopedElementsMixin } from '@open-wc/scoped-elements/lit-element.js';
 import { localized, msg, str } from '@lit/localize';
 
 import { OscdIconButton } from '@omicronenergy/oscd-ui/iconbutton/OscdIconButton.js';
 import { OscdIcon } from '@omicronenergy/oscd-ui/icon/OscdIcon.js';
+import { OscdListItem } from '@omicronenergy/oscd-ui/list/OscdListItem.js';
+import { OscdMenu } from '@omicronenergy/oscd-ui/menu/OscdMenu.js';
+import { OscdMenuItem } from '@omicronenergy/oscd-ui/menu/OscdMenuItem.js';
 
 import { LocaleTag } from '../localization.js';
 import { PluginEntry, PluginGroup } from '../oscd-shell.js';
@@ -96,10 +100,13 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
   static scopedElements = {
     'oscd-icon-button': OscdIconButton,
     'oscd-icon': OscdIcon,
+    'oscd-list-item': OscdListItem,
     'oscd-tree': OscdTree,
     'oscd-tree-item': OscdTreeItem,
     'oscd-outlined-text-field': OscdOutlinedTextField,
     'oscd-divider': OscdDivider,
+    'oscd-menu': OscdMenu,
+    'oscd-menu-item': OscdMenuItem,
   };
 
   id = 'editor-plugins-panel';
@@ -116,6 +123,20 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
   @localstorage({ default: true })
   @property({ type: Boolean, reflect: true })
   expanded!: boolean;
+
+  /**
+   * Transient "search mode": the collapsed rail's search icon opens the full
+   * panel to let the user search, WITHOUT persisting the panel as expanded.
+   * It is reflected purely so `:host([search-mode])` can drive the open width.
+   * Exited on editor selection or Escape (see `exitSearchMode`).
+   */
+  @property({ type: Boolean, reflect: true, attribute: 'search-mode' })
+  searchMode = false;
+
+  /** True when the panel is visually open (persisted expanded OR transient search). */
+  get isOpen(): boolean {
+    return this.expanded || this.searchMode;
+  }
 
   editorTreeNodes: EditorPluginTreeNode[] = [];
 
@@ -195,6 +216,14 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
     const editor = flattenPluginEntries(this.editors).find(
       editor => editor.tagName === selectedId,
     );
+    this.emitEditorSelect(editor);
+  }
+
+  /**
+   * Dispatches the `editor-select` event and leaves transient search mode, if
+   * active. Used by both the expanded trees and the collapsed rail flyouts.
+   */
+  private emitEditorSelect(editor?: PluginEntry) {
     this.dispatchEvent(
       new CustomEvent('editor-select', {
         detail: { editor },
@@ -202,6 +231,52 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
         composed: true,
       }),
     );
+    if (this.searchMode) {
+      this.exitSearchMode();
+    }
+  }
+
+  connectedCallback() {
+    super.connectedCallback();
+    this.addEventListener('keydown', this.handleKeydown);
+  }
+
+  disconnectedCallback() {
+    this.removeEventListener('keydown', this.handleKeydown);
+    super.disconnectedCallback();
+  }
+
+  private handleKeydown = (event: KeyboardEvent) => {
+    if (event.key === 'Escape' && this.searchMode) {
+      event.stopPropagation();
+      this.exitSearchMode();
+    }
+  };
+
+  /** Opens the panel transiently for searching (does not persist `expanded`). */
+  private enterSearchMode() {
+    this.searchMode = true;
+    this.updateComplete.then(() => {
+      this.shadowRoot
+        ?.querySelector<OscdOutlinedTextField>('oscd-outlined-text-field')
+        ?.focus();
+    });
+  }
+
+  /** Returns the panel to the collapsed rail and clears the search query. */
+  private exitSearchMode() {
+    this.searchMode = false;
+    this.searchValue = '';
+  }
+
+  /** Toggles the persisted expanded/collapsed state via the footer control. */
+  private toggleExpanded() {
+    if (this.isOpen) {
+      this.expanded = false;
+      this.exitSearchMode();
+    } else {
+      this.expanded = true;
+    }
   }
 
   renderPluginItem({ node, level }: TreeRenderContext<EditorPluginTreeNode>) {
@@ -228,6 +303,13 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
   }
 
   render() {
+    return html`
+      ${this.isOpen ? this.renderExpanded() : this.renderRail()}
+      ${this.renderFooter()}
+    `;
+  }
+
+  private renderExpanded() {
     return html`
       <div class="tree-container">
         <oscd-outlined-text-field
@@ -294,29 +376,142 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
           }}
         ></oscd-tree>
       </div>
+    `;
+  }
+
+  private renderFooter() {
+    const open = this.isOpen;
+    const label = open ? msg('Collapse sidebar') : msg('Expand sidebar');
+    const icon = open ? 'left_panel_close' : 'left_panel_open';
+    return html`
       <div class="footer">
-        <oscd-icon-button
-          class="toggle-button"
-          aria-label=${this.expanded
-            ? msg('Collapse sidebar')
-            : msg('Expand sidebar')}
-          @click=${() => {
-            this.expanded = !this.expanded;
-          }}
-        >
-          <oscd-icon
-            >${this.expanded
-              ? 'left_panel_close'
-              : 'left_panel_open'}</oscd-icon
-          ></oscd-icon-button
-        >
+        ${open
+          ? html`<oscd-list-item
+              class="toggle-button"
+              type="button"
+              aria-label=${label}
+              @click=${() => this.toggleExpanded()}
+            >
+              <oscd-icon slot="start">${icon}</oscd-icon>
+              <span slot="headline">${label}</span>
+            </oscd-list-item>`
+          : html`<oscd-icon-button
+              class="toggle-button"
+              aria-label=${label}
+              @click=${() => this.toggleExpanded()}
+            >
+              <oscd-icon>${icon}</oscd-icon>
+            </oscd-icon-button>`}
       </div>
     `;
   }
 
+  private renderRail() {
+    const pinnedPlugins = flattenPluginEntries(
+      filterByPinned(this.editors, this.pinnedPluginIds),
+    );
+    return html`
+      <div class="rail">
+        <oscd-icon-button
+          class="rail-item"
+          aria-label=${msg('Search')}
+          @click=${() => this.enterSearchMode()}
+        >
+          <oscd-icon>search</oscd-icon>
+        </oscd-icon-button>
+        ${this.renderRailGroup(
+          { name: msg('Pinned'), icon: 'keep', plugins: pinnedPlugins },
+          'pinned',
+        )}
+        <oscd-divider></oscd-divider>
+        ${this.editors.map((entry, index) =>
+          isPluginGroup(entry)
+            ? this.renderRailGroup(entry, `group-${index}`)
+            : this.renderRailLeaf(entry as PluginEntry),
+        )}
+      </div>
+    `;
+  }
+
+  private renderRailGroup(group: PluginGroup, anchorId: string) {
+    const label = group.translations?.[this.locale] ?? group.name;
+    const active = group.plugins.some(
+      plugin => plugin.tagName === this.selectedEditor?.tagName,
+    );
+    const anchor = `rail-${anchorId}`;
+    return html`
+      <oscd-icon-button
+        id=${anchor}
+        class=${classMap({ 'rail-item': true, active })}
+        aria-haspopup="menu"
+        aria-label=${label}
+        @click=${() => this.toggleFlyout(anchorId)}
+      >
+        <oscd-icon>${group.icon}</oscd-icon>
+      </oscd-icon-button>
+      <oscd-menu
+        class="rail-flyout"
+        data-flyout=${anchorId}
+        anchor=${anchor}
+        anchor-corner="start-end"
+        menu-corner="start-start"
+        positioning="popover"
+        quick
+      >
+        <div class="flyout-header" role="presentation">${label}</div>
+        <oscd-divider class="flyout-divider"></oscd-divider>
+        ${group.plugins.map(plugin => this.renderFlyoutItem(plugin))}
+      </oscd-menu>
+    `;
+  }
+
+  private renderRailLeaf(plugin: PluginEntry) {
+    const label = plugin.translations?.[this.locale] ?? plugin.name;
+    const active = plugin.tagName === this.selectedEditor?.tagName;
+    return html`
+      <oscd-icon-button
+        class=${classMap({ 'rail-item': true, active })}
+        aria-label=${label}
+        @click=${() => this.emitEditorSelect(plugin)}
+      >
+        <oscd-icon>${plugin.icon}</oscd-icon>
+      </oscd-icon-button>
+    `;
+  }
+
+  private renderFlyoutItem(plugin: PluginEntry) {
+    const label = plugin.translations?.[this.locale] ?? plugin.name;
+    const selected = plugin.tagName === this.selectedEditor?.tagName;
+    return html`
+      <oscd-menu-item
+        .selected=${selected}
+        @click=${() => this.emitEditorSelect(plugin)}
+      >
+        <div slot="headline">${label}</div>
+      </oscd-menu-item>
+    `;
+  }
+
+  private toggleFlyout(anchorId: string) {
+    const menu = this.shadowRoot?.querySelector<OscdMenu>(
+      `oscd-menu[data-flyout="${anchorId}"]`,
+    );
+    if (!menu) {
+      return;
+    }
+    if (menu.open) {
+      menu.close();
+    } else {
+      menu.show();
+    }
+  }
+
   static styles = css`
     :host {
-      width: var(--editor-plugins-panel-width);
+      /* Collapsed rail is the default width; the panel widens to its full width
+         when persistently expanded OR while in transient search mode. The shell
+         grid column follows this intrinsic width (grid-template-columns: auto). */
+      width: var(--editor-plugins-panel-collapsed-width);
       height: calc(100% - var(--editor-plugins-panel-padding-top));
       display: grid;
       grid-template-rows: 1fr auto;
@@ -324,7 +519,116 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
       padding-top: var(--editor-plugins-panel-padding-top);
       transition: width 0.1s ease-in-out;
       overflow-y: auto;
+      /* Clip transient horizontal overflow while the width animates on
+         expand/collapse: the content swaps to its full width before the host
+         finishes resizing, and this stops that from forcing horizontal reflow /
+         scrollbar churn every animation frame. Steady-state label overrun is
+         handled by the tree row ellipsis, not by this. */
       overflow-x: hidden;
+    }
+
+    /* Material colour scheme for the panel's content. The panel is transparent
+       over the shell's dark-blue background, so its content is light ("white")
+       on a dark surface. We set the *system* colours once here — not each
+       component's final colour — so resting text/icons AND every derived
+       hover/pressed state layer resolve to the light content colour from one
+       place. (The flyout menus are a light surface and reset these back to the
+       shell defaults; see .rail-flyout.)
+
+       NB: these are set on the content containers rather than :host on purpose —
+       the shell sets a universal rule (* { --md-sys-color-on-surface: ... }),
+       which targets the panel host from the outer tree and beats a :host
+       declaration. That universal rule cannot cross into this shadow tree, so
+       declaring on the containers reliably wins for all descendants. (See the
+       "transparent panel" tech-debt item; a proper panel surface will make this
+       cleaner.) */
+    .rail,
+    .tree-container,
+    .footer {
+      --md-sys-color-on-surface: var(--editor-plugins-panel-item-text-color);
+      --md-sys-color-on-surface-variant: var(
+        --editor-plugins-panel-item-icon-color
+      );
+    }
+
+    :host([expanded]),
+    :host([search-mode]) {
+      width: var(--editor-plugins-panel-width);
+    }
+
+    /* Collapsed icon rail: a flat column of 44px icon buttons (28px glyph + 8px
+       padding), inset 16px so the glyphs land at the same x (24px) as both the
+       search icon and the tree-item icons in the expanded panel. */
+    .rail {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      padding-inline: 16px;
+      min-width: 0;
+    }
+
+    .rail-item {
+      --md-icon-button-icon-size: 28px;
+      --md-icon-button-state-layer-height: 44px;
+      --md-icon-button-state-layer-width: 44px;
+      border-radius: 5px;
+    }
+
+    /* Active group/editor: dark rounded square behind the glyph. */
+    .rail-item.active {
+      background: var(--editor-plugins-panel-item-active-bg);
+    }
+
+    .rail oscd-divider {
+      /* 44px wide (aligned with the icon column), 12px clearance above and
+         below, per the Figma collapsed spec. */
+      width: 44px;
+      margin-block: 12px;
+      --md-divider-color: var(--editor-plugins-panel-divider-color);
+    }
+
+    /* Flyout menu opened from a collapsed group icon. Figma "Links container":
+       padding 8px, gap 4px, 1px border, 5px radius, light surface + shadow.
+       Unlike the rest of the panel this is a LIGHT surface, so it resets the
+       system colours back to the shell defaults (dark content on a light
+       surface); everything inside then derives correctly. */
+    .rail-flyout {
+      --md-sys-color-surface: var(--plugins-menu-container-color);
+      --md-sys-color-surface-container: var(--plugins-menu-container-color);
+      --md-sys-color-on-surface: var(--plugins-menu-item-label-color);
+      --md-sys-color-on-surface-variant: var(
+        --plugins-menu-item-leading-icon-color
+      );
+      --md-menu-container-color: var(--plugins-menu-container-color);
+      min-width: 200px;
+    }
+
+    .flyout-header {
+      /* Group name heading: Material label-large, in the secondary blue, per the
+         Figma "Links container" header. */
+      padding: 8px 12px;
+      font-family: var(--oscd-text-font, Roboto), sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      line-height: 20px;
+      letter-spacing: 0.1px;
+      color: var(--editor-plugins-panel-flyout-header-text-color);
+    }
+
+    .rail-flyout .flyout-divider {
+      /* Separates the group heading from its editor items. */
+      --md-divider-color: var(--editor-plugins-panel-divider-color);
+      margin-block: 4px;
+    }
+
+    .rail-flyout oscd-menu-item {
+      width: 100%;
+      --md-menu-item-selected-container-color: var(
+        --plugins-menu-item-selected-container-color
+      );
+      --md-menu-item-selected-label-text-color: var(
+        --plugins-menu-item-selected-label-color
+      );
     }
 
     .tree-container {
@@ -341,10 +645,6 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
     oscd-outlined-text-field {
       border-radius: 5px;
       background: #6dadee66;
-      --md-sys-color-on-surface: var(--editor-plugins-panel-item-text-color);
-      --md-sys-color-on-surface-variant: var(
-        --editor-plugins-panel-item-text-color
-      );
       --md-outlined-field-top-space: 6px;
       --md-outlined-field-bottom-space: 6px;
       /* Match the tree rows: 8px inner padding so the 28px search icon lands at
@@ -426,18 +726,8 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
       /* Pin accessory hidden at rest, revealed on row hover / keyboard focus
          (see Figma side-panel spec); its icon size inherits the 28px toggle. */
       --oscd-tree-accessory-rest-opacity: 0;
-      --md-sys-color-on-surface: var(--editor-plugins-panel-item-text-color);
-      --md-sys-color-on-surface-variant: var(
-        --editor-plugins-panel-item-text-color
-      );
       --md-icon-size: var(--editor-plugins-panel-item-icon-size);
       --md-list-container-color: rgba(0, 0, 0, 0);
-      --md-tree-item-label-text-color: var(
-        --editor-plugins-panel-item-text-color
-      );
-      --md-tree-item-leading-icon-color: var(
-        --editor-plugins-panel-item-icon-color
-      );
       --oscd-tree-row-selected-color: var(
         --editor-plugins-panel-item-active-bg
       );
@@ -447,7 +737,7 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
     }
 
     oscd-divider {
-      --md-divider-color: var(--editor-plugins-panel-divider-color, #d0d5dc40);
+      --md-divider-color: var(--editor-plugins-panel-divider-color);
       /* No margin: .tree-container's 12px gap owns the spacing on both sides. */
       margin-block: 0;
     }
@@ -458,42 +748,43 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
     }
 
     .footer {
-      /* setting this to display:none until re-design is fixed and its safe to remove */
-      display: none;
-      /* justify-self: center;
-      justify-content: center;
-      padding-block: 22px; */
+      /* Persistent collapse/expand control, bottom-left in both modes. The 16px
+         inline inset matches the tree-container (so the expanded list-item spans
+         the same width as the rows) and the rail items; 16px below is the Figma
+         bottom margin. */
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      padding-inline: 16px;
+      padding-block: 0 16px;
     }
 
-    .toggle-button {
-      --md-icon-color: var(--editor-plugins-panel-item-icon-color);
-      --md-icon-button-icon-size: var(--editor-plugins-panel-item-icon-size);
-      --md-icon-button-hover-state-layer-color: var(
-        --editor-plugins-panel-item-icon-color
-      );
-      --md-icon-button-hover-state-layer-opacity: 0.08;
-      --md-icon-button-icon-color: var(--editor-plugins-panel-item-icon-color);
-      --md-icon-button-hover-icon-color: var(
-        --editor-plugins-panel-item-icon-color
-      );
-      --md-icon-button-focus-icon-color: var(
-        --editor-plugins-panel-item-icon-color
-      );
-      --md-icon-button-pressed-icon-color: var(
-        --editor-plugins-panel-item-icon-color
-      );
-      --md-icon-button-state-layer-height: 48px;
-      --md-icon-button-state-layer-width: 48px;
+    /* Expanded: an interactive list item so it reads as "one more row" — full
+       width with a full-width hover/ripple state layer, left-aligned, no
+       container fill at rest. 8px leading space lands the 28px glyph at x24,
+       exactly like the search field and tree rows above it. */
+    oscd-list-item.toggle-button {
+      width: 100%;
+      border-radius: 5px;
+      --md-list-item-leading-space: 8px;
+      --md-list-item-trailing-space: 8px;
+      --md-list-item-one-line-container-height: 40px;
+      --md-list-item-top-space: 8px;
+      --md-list-item-bottom-space: 8px;
+      --md-list-item-label-text-size: 16px;
     }
 
-    :host([expanded]) {
-      width: var(--editor-plugins-panel-width);
+    oscd-list-item.toggle-button oscd-icon[slot='start'] {
+      /* Every icon in the side panel is 28px (matches the tree icons). */
+      --md-icon-size: 28px;
     }
 
-    /* :host([expanded]) .footer {
-      justify-self: flex-end;
-      justify-content: flex-end;
-      padding-inline: 22px;
-    } */
+    /* Collapsed rail: icon-only toggle, matching the rail items (44px target,
+       28px glyph, glyph lands at x24 like the other rail icons). */
+    oscd-icon-button.toggle-button {
+      --md-icon-button-icon-size: 28px;
+      --md-icon-button-state-layer-height: 44px;
+      --md-icon-button-state-layer-width: 44px;
+    }
   `;
 }
