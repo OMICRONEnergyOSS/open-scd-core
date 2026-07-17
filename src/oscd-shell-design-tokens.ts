@@ -89,7 +89,6 @@ export const oscdShellDesignTokens = css`
 
   * {
     --app-bar-height: 54px;
-    --side-panel-width: 308px;
 
     --md-sys-color-primary: var(--oscd-primary);
     --md-sys-color-on-primary: var(--oscd-base3);
@@ -217,8 +216,8 @@ export const oscdShellDesignTokens = css`
       308px
     );
     --editor-plugins-panel-collapsed-width: var(
-      --oscd-shell-editor-plugins-panel-width,
-      308px
+      --oscd-shell-editor-plugins-panel-collapsed-width,
+      76px
     );
     --editor-plugins-panel-padding-top: var(
       --oscd-shell-editor-plugins-panel-padding-top,
@@ -240,7 +239,14 @@ export const oscdShellDesignTokens = css`
       --oscd-shell-editor-plugins-panel-item-active-bg,
       var(--oscd-primary)
     );
-    --side-panel-width: var(--editor-plugins-panel-width);
+    --editor-plugins-panel-divider-color: var(
+      --oscd-shell-editor-plugins-panel-divider-color,
+      #d0d5dc40
+    );
+    --editor-plugins-panel-flyout-header-text-color: var(
+      --oscd-shell-editor-plugins-panel-flyout-header-text-color,
+      var(--oscd-secondary)
+    );
 
     /* Main editor container */
     --editor-background-color: var(
