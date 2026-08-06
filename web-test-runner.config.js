@@ -103,7 +103,7 @@ export default /** @type {import("@web/test-runner").TestRunnerConfig} */ ({
             <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300&family=Roboto:wght@300;400;500&display=swap" />
             <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Material+Symbols+Outlined&display=block" />
             <!-- Script to replace window.structuredClone with @ungap/structured-clone (in lossy mode) -->
-            <script type="module">       
+            <script type="module">
               import structuredClone from '@ungap/structured-clone';
               window.structuredClone = (value) => structuredClone(value, { lossy: true });
             </script>
@@ -122,7 +122,7 @@ export default /** @type {import("@web/test-runner").TestRunnerConfig} */ ({
                 --oscd-primary: var(#2aa198);
                 --oscd-secondary: var(--oscd-theme-secondary, #6c71c4);
                 --oscd-error: var(--oscd-theme-error, #dc322f);
-    
+
                --oscd-base03: var(--oscd-theme-base03, #002b36);
                --oscd-base02: var(--oscd-theme-base02, #073642);
                --oscd-base01: var(--oscd-theme-base01, #586e75);
@@ -131,6 +131,9 @@ export default /** @type {import("@web/test-runner").TestRunnerConfig} */ ({
                --oscd-base1: var(--oscd-theme-base1, #93a1a1);
                --oscd-base2: var(--oscd-theme-base2, #eee8d5);
                --oscd-base3: var(--oscd-theme-base3, #fdf6e3);
+             }
+             oscd-shell {
+              background-color: var(--oscd-base00);
              }
             </style>
             <script>window.process = { env: ${JSON.stringify(process.env)} }</script>

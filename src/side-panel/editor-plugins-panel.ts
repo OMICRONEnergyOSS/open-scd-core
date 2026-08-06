@@ -216,14 +216,14 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
     const editor = flattenPluginEntries(this.editors).find(
       editor => editor.tagName === selectedId,
     );
-    this.emitEditorSelect(editor);
+    this.dispatchEditorSelect(editor);
   }
 
   /**
    * Dispatches the `editor-select` event and leaves transient search mode, if
    * active. Used by both the expanded trees and the collapsed rail flyouts.
    */
-  private emitEditorSelect(editor?: PluginEntry) {
+  private dispatchEditorSelect(editor?: PluginEntry) {
     this.dispatchEvent(
       new CustomEvent('editor-select', {
         detail: { editor },
@@ -279,6 +279,20 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
     }
   }
 
+  private toggleFlyout(anchorId: string) {
+    const menu = this.shadowRoot?.querySelector<OscdMenu>(
+      `oscd-menu[data-flyout="${anchorId}"]`,
+    );
+    if (!menu) {
+      return;
+    }
+    if (menu.open) {
+      menu.close();
+    } else {
+      menu.show();
+    }
+  }
+
   renderPluginItem({ node, level }: TreeRenderContext<EditorPluginTreeNode>) {
     const label = node.translations?.[this.locale] ?? node.name;
     return html`<oscd-tree-item>
@@ -300,13 +314,6 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
     >
       <oscd-icon>${pinned ? pinnedIcon : unpinnedIcon}</oscd-icon>
     </button>`;
-  }
-
-  render() {
-    return html`
-      ${this.isOpen ? this.renderExpanded() : this.renderRail()}
-      ${this.renderFooter()}
-    `;
   }
 
   private renderExpanded() {
@@ -379,33 +386,6 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
     `;
   }
 
-  private renderFooter() {
-    const open = this.isOpen;
-    const label = open ? msg('Collapse sidebar') : msg('Expand sidebar');
-    const icon = open ? 'left_panel_close' : 'left_panel_open';
-    return html`
-      <div class="footer">
-        ${open
-          ? html`<oscd-list-item
-              class="toggle-button"
-              type="button"
-              aria-label=${label}
-              @click=${() => this.toggleExpanded()}
-            >
-              <oscd-icon slot="start">${icon}</oscd-icon>
-              <span slot="headline">${label}</span>
-            </oscd-list-item>`
-          : html`<oscd-icon-button
-              class="toggle-button"
-              aria-label=${label}
-              @click=${() => this.toggleExpanded()}
-            >
-              <oscd-icon>${icon}</oscd-icon>
-            </oscd-icon-button>`}
-      </div>
-    `;
-  }
-
   private renderRail() {
     const pinnedPlugins = flattenPluginEntries(
       filterByPinned(this.editors, this.pinnedPluginIds),
@@ -472,7 +452,7 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
       <oscd-icon-button
         class=${classMap({ 'rail-item': true, active })}
         aria-label=${label}
-        @click=${() => this.emitEditorSelect(plugin)}
+        @click=${() => this.dispatchEditorSelect(plugin)}
       >
         <oscd-icon>${plugin.icon}</oscd-icon>
       </oscd-icon-button>
@@ -485,25 +465,45 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
     return html`
       <oscd-menu-item
         .selected=${selected}
-        @click=${() => this.emitEditorSelect(plugin)}
+        @click=${() => this.dispatchEditorSelect(plugin)}
       >
         <div slot="headline">${label}</div>
       </oscd-menu-item>
     `;
   }
 
-  private toggleFlyout(anchorId: string) {
-    const menu = this.shadowRoot?.querySelector<OscdMenu>(
-      `oscd-menu[data-flyout="${anchorId}"]`,
-    );
-    if (!menu) {
-      return;
-    }
-    if (menu.open) {
-      menu.close();
-    } else {
-      menu.show();
-    }
+  private renderFooter() {
+    const open = this.isOpen;
+    const label = open ? msg('Collapse sidebar') : msg('Expand sidebar');
+    const icon = open ? 'left_panel_close' : 'left_panel_open';
+    return html`
+      <div class="footer">
+        ${open
+          ? html`<oscd-list-item
+              class="toggle-button"
+              type="button"
+              aria-label=${label}
+              @click=${() => this.toggleExpanded()}
+            >
+              <oscd-icon slot="start">${icon}</oscd-icon>
+              <span slot="headline">${label}</span>
+            </oscd-list-item>`
+          : html`<oscd-icon-button
+              class="toggle-button"
+              aria-label=${label}
+              @click=${() => this.toggleExpanded()}
+            >
+              <oscd-icon>${icon}</oscd-icon>
+            </oscd-icon-button>`}
+      </div>
+    `;
+  }
+
+  render() {
+    return html`
+      ${this.isOpen ? this.renderExpanded() : this.renderRail()}
+      ${this.renderFooter()}
+    `;
   }
 
   static styles = css`
@@ -548,6 +548,11 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
       --md-sys-color-on-surface: var(--editor-plugins-panel-item-text-color);
       --md-sys-color-on-surface-variant: var(
         --editor-plugins-panel-item-icon-color
+      );
+
+      --md-sys-color-surface: var(
+        --editor-plugins-panel-item-background-color,
+        gray
       );
     }
 
@@ -727,7 +732,6 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
          (see Figma side-panel spec); its icon size inherits the 28px toggle. */
       --oscd-tree-accessory-rest-opacity: 0;
       --md-icon-size: var(--editor-plugins-panel-item-icon-size);
-      --md-list-container-color: rgba(0, 0, 0, 0);
       --oscd-tree-row-selected-color: var(
         --editor-plugins-panel-item-active-bg
       );
@@ -740,11 +744,6 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
       --md-divider-color: var(--editor-plugins-panel-divider-color);
       /* No margin: .tree-container's 12px gap owns the spacing on both sides. */
       margin-block: 0;
-    }
-
-    .editors-tree oscd-list-item span {
-      /* prevents jitter when collapsing */
-      white-space: nowrap;
     }
 
     .footer {
