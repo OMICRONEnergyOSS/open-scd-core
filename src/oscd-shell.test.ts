@@ -16,7 +16,6 @@ import {
 } from './utils/testing/plugin-helpers.js';
 import { TestMenuPlugin1 } from './utils/testing/test-plugins.js';
 import { PluginsMenu } from './menus/plugins-menu.js';
-import { OscdListItem } from '@omicronenergy/oscd-ui/list/OscdListItem.js';
 
 const factor = (
   window as Window & {
@@ -229,10 +228,10 @@ allLocales.forEach(lang =>
         });
 
         it('changes active editor plugin on tab click', async () => {
-          (
-            oscdShell.editorPluginsPanel?.shadowRoot?.querySelector('oscd-list')
-              ?.lastElementChild as OscdListItem
-          ).click();
+          const rows = oscdShell.editorPluginsPanel?.shadowRoot
+            ?.querySelector('.tree-container oscd-tree.editors-tree')
+            ?.shadowRoot?.querySelectorAll<HTMLElement>('[role="treeitem"]');
+          (rows?.[rows.length - 1] as HTMLElement).click();
 
           await oscdShell.updateComplete;
           await timeout(120);

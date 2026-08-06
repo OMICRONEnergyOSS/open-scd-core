@@ -1,5 +1,5 @@
 import { expect, fixture, html } from '@open-wc/testing';
-import type { OscdShell } from '../oscd-shell.js';
+import type { OscdShell, PluginEntry } from '../oscd-shell.js';
 
 import '../oscd-shell.js';
 import { TestMenuPlugin1 } from '../utils/testing/test-plugins.js';
@@ -28,7 +28,8 @@ describe('default landing-page', () => {
         landingPageSubHeading=${testSubHeading}
       ></oscd-shell>`,
     );
-    const testMenuPlugin1TagName = sampleMenuPlugins[0].tagName!;
+    const testMenuPlugin1TagName = (sampleMenuPlugins[0] as PluginEntry)
+      .tagName!;
     expect(testMenuPlugin1TagName).to.not.be.undefined;
     if (oscdShell?.registry?.get(testMenuPlugin1TagName) === undefined) {
       oscdShell?.registry?.define(testMenuPlugin1TagName!, TestMenuPlugin1);
@@ -77,7 +78,7 @@ describe('default landing-page', () => {
 
   it('triggers the run method of the plugin when a menu tile is clicked', async () => {
     const testMenuPlugin1Def = sampleMenuPlugins.find(
-      plugin => plugin.tagName === 'test-menu-plugin1',
+      plugin => (plugin as PluginEntry).tagName === 'test-menu-plugin1',
     );
     const menuPluginElements =
       landingPage.shadowRoot!.querySelectorAll('.menu-plugin-item');

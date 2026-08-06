@@ -28,6 +28,7 @@ describe('plugins-menu', () => {
     oscdShell = <OscdShell>(
       await fixture(
         html`<oscd-shell
+          appIcon="none"
           .docs=${docs}
           docName=${Object.keys(docs)[0]}
         ></oscd-shell>`,

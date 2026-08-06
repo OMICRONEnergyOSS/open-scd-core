@@ -19,12 +19,7 @@ import {
   isPluginGroup,
   loadSourcedPlugins,
 } from './utils/plugin-utils.js';
-import {
-  getLocale,
-  LocaleTag,
-  setLocale,
-  Translations,
-} from './localization.js';
+import { getLocale, LocaleTag, setLocale } from './localization.js';
 import { EditorPluginsPanel } from './side-panel/editor-plugins-panel.js';
 import { PluginsMenu } from './menus/plugins-menu.js';
 import { LandingPage } from './landing-page/landing-page.js';
@@ -33,14 +28,6 @@ import { FilesMenu } from './menus/files-menu.js';
 import { oscdShellDesignTokens } from './oscd-shell-design-tokens.js';
 import { OscdAppBar } from '@omicronenergy/oscd-ui/app-bar/OscdAppBar.js';
 import { OscdIcon } from '@omicronenergy/oscd-ui/icon/OscdIcon.js';
-
-export type PluginEntryOld = {
-  name: string;
-  translations?: Translations;
-  tagName: string;
-  icon: string;
-  requireDoc?: boolean;
-};
 
 export interface PluginBase {
   name: string;

@@ -3,10 +3,18 @@ import { waitUntil } from '@open-wc/testing';
 import { OscdShell, PluginEntry, PluginGroup } from '../../oscd-shell.js';
 import { flattenPluginEntries } from '../plugin-utils.js';
 
-export const sampleMenuPlugins: (Omit<PluginEntry, 'tagName'> & {
-  tagName?: string;
-  src?: string;
-})[] = [
+export const sampleMenuPlugins: (
+  | PluginGroup<
+      Omit<PluginEntry, 'tagName'> & {
+        tagName?: string;
+        src?: string;
+      }
+    >
+  | (Omit<PluginEntry, 'tagName'> & {
+      tagName?: string;
+      src?: string;
+    })
+)[] = [
   {
     name: 'Test Menu Plugin',
     translations: { de: 'Test Menu Erweiterung' },
@@ -21,10 +29,16 @@ export const sampleMenuPlugins: (Omit<PluginEntry, 'tagName'> & {
     requireDoc: false,
   },
   {
-    name: 'Test Menu Plugin 3',
-    src: 'data:text/javascript;charset=utf-8,export%20default%20class%20TestStrMenuPlugin3%20extends%20HTMLElement%20%7B%0D%0A%20%20async%20run%28%29%20%7B%0D%0A%20%20%20%20return%20true%3B%0D%0A%20%20%7D%0D%0A%7D',
+    name: 'Test Menu Group 1',
     icon: 'margin',
-    requireDoc: false,
+    plugins: [
+      {
+        name: 'Test Menu Plugin 3',
+        src: 'data:text/javascript;charset=utf-8,export%20default%20class%20TestStrMenuPlugin3%20extends%20HTMLElement%20%7B%0D%0A%20%20async%20run%28%29%20%7B%0D%0A%20%20%20%20return%20true%3B%0D%0A%20%20%7D%0D%0A%7D',
+        icon: 'margin',
+        requireDoc: false,
+      },
+    ],
   },
 ];
 
