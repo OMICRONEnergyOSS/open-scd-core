@@ -83,6 +83,9 @@ export default /** @type {import("@web/test-runner").TestRunnerConfig} */ ({
       scopedCustomElementRegistry: true,
     }),
   ],
+  coverageConfig: {
+    exclude: ['node_modules/**/*', '**/__wds-outside-root__/**/*'],
+  },
 
   rootDir: './dist',
 

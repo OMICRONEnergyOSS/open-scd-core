@@ -48,7 +48,7 @@ export class FilesMenu extends ScopedElementsMixin(LitElement) {
           trailing-icon
           >
           ${this.selectedDocName}
-          <oscd-icon slot="icon">code</oscd-icon></oscd-filled-icon-button
+          <oscd-icon slot="icon">arrow_drop_down</oscd-icon></oscd-filled-icon-button
         >
       </oscd-text-button>
 
@@ -93,11 +93,8 @@ export class FilesMenu extends ScopedElementsMixin(LitElement) {
       --md-text-button-label-text-size: var(--file-menu-text-size);
       --md-text-button-label-text-style: normal;
       --md-sys-color-primary: var(--file-menu-text-color);
+      --md-text-button-icon-size: 24px;
       display: inline;
-    }
-
-    :host oscd-text-button oscd-icon {
-      transform: rotate(90deg);
     }
 
     oscd-menu {

@@ -99,6 +99,18 @@ describe('OscdShell', () => {
         ),
       ).to.not.exist;
     });
+
+    it('does not load the file selector in the app-bar when no document is set', async () => {
+      const sclDoc = createSclDocument();
+      oscdShell.docs = { 'test.scd': sclDoc };
+      oscdShell.docName = '';
+      await oscdShell.updateComplete;
+
+      const appBarEnd =
+        oscdShell.shadowRoot?.querySelector('[slot="alignEnd"]');
+      expect(appBarEnd?.querySelector('files-menu')).not.to.exist;
+      expect(appBarEnd?.querySelector('oscd-divider')).not.to.exist;
+    });
   });
 
   describe('with editor plugins loaded', () => {
@@ -182,6 +194,24 @@ describe('OscdShell', () => {
         'selected editor did not move to second item',
       );
       expect(getIndexOfSelectedEditor(queryEditorItems())).to.equal(1);
+    });
+
+    it('places the current editor at the start and file selector at the end of the app bar', async () => {
+      const currentEditor = oscdShell.shadowRoot?.querySelector(
+        '.current-editor[slot="alignStart"]',
+      );
+      expect(currentEditor?.textContent).to.contain(
+        oscdShell.selectedEditor!.name,
+      );
+      expect(currentEditor?.querySelector('oscd-divider.vertical')).to.exist;
+
+      const appBarEnd =
+        oscdShell.shadowRoot?.querySelector('[slot="alignEnd"]');
+      expect(appBarEnd?.querySelector('files-menu')).to.exist;
+      expect(appBarEnd?.querySelector('oscd-divider.vertical')).to.exist;
+      expect(
+        appBarEnd?.querySelectorAll('oscd-filled-icon-button'),
+      ).to.have.lengthOf(2);
     });
 
     it('passes attribute locale', () => {

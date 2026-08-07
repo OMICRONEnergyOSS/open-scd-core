@@ -148,6 +148,30 @@ export const oscdShellDesignTokens = css`
       --oscd-shell-app-bar-title-letter-spacing,
       inherit
     );
+    --app-bar-current-editor-font-family: var(
+      --oscd-shell-app-bar-current-editor-font-family,
+      var(--oscd-text-font)
+    );
+    --app-bar-current-editor-font-size: var(
+      --oscd-shell-app-bar-current-editor-font-size,
+      16px
+    );
+    --app-bar-current-editor-font-weight: var(
+      --oscd-shell-app-bar-current-editor-font-weight,
+      500
+    );
+    --app-bar-current-editor-font-style: var(
+      --oscd-shell-app-bar-current-editor-font-style,
+      normal
+    );
+    --app-bar-current-editor-line-height: var(
+      --oscd-shell-app-bar-current-editor-line-height,
+      normal
+    );
+    --app-bar-current-editor-color: var(
+      --oscd-shell-app-bar-current-editor-color,
+      var(--app-bar-color)
+    );
     --app-bar-action-icon-size: var(
       --oscd-shell-app-bar-action-icon-size,
       24px
@@ -171,7 +195,7 @@ export const oscdShellDesignTokens = css`
       --oscd-shell-file-menu-text-font-family,
       var(--oscd-text-font)
     );
-    --file-menu-text-size: var(--oscd-shell-file-menu-text-size, 18px);
+    --file-menu-text-size: var(--oscd-shell-file-menu-text-size, 16px);
     --file-menu-text-weight: var(--oscd-shell-file-menu-text-weight, 500);
     --file-menu-text-color: var(
       --oscd-shell-file-menu-text-color,

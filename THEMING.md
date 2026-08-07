@@ -51,6 +51,12 @@ In your distro theme.css file, you can define values for any of the variables do
 | `--oscd-shell-app-bar-title-font-style`     | `normal`                     | App title font-style     |
 | `--oscd-shell-app-bar-title-line-height`    | `normal`                     | App title line-height    |
 | `--oscd-shell-app-bar-title-letter-spacing` | `inherit`                    | App title letter spacing |
+| `--oscd-shell-app-bar-current-editor-font-family` | `--oscd-theme-text-font` | Current editor font family |
+| `--oscd-shell-app-bar-current-editor-font-size`   | `16px`                   | Current editor font size   |
+| `--oscd-shell-app-bar-current-editor-font-weight` | `500`                    | Current editor font weight |
+| `--oscd-shell-app-bar-current-editor-font-style`  | `normal`                 | Current editor font style  |
+| `--oscd-shell-app-bar-current-editor-line-height` | `normal`                 | Current editor line height |
+| `--oscd-shell-app-bar-current-editor-color`       | `--oscd-base3`           | Current editor text color  |
 | `--oscd-shell-app-bar-action-icon-size`     | `24px`                       | Undo/redo icon size      |
 | `--oscd-shell-app-bar-action-icon-color`    | `--oscd-base3`               | Undo/redo icon color     |
 
@@ -59,7 +65,7 @@ In your distro theme.css file, you can define values for any of the variables do
 | Design Token                              | Default                  | Affects                    |
 | ----------------------------------------- | ------------------------ | -------------------------- |
 | `--oscd-shell-file-menu-text-font-family` | `--oscd-theme-text-font` | File-menu label font       |
-| `--oscd-shell-file-menu-text-size`        | `18px`                   | File-menu label size       |
+| `--oscd-shell-file-menu-text-size`        | `16px`                   | File-menu label size       |
 | `--oscd-shell-file-menu-text-weight`      | `500`                    | File-menu label weight     |
 | `--oscd-shell-file-menu-text-color`       | `--oscd-base3`           | File-menu label/icon color |
 

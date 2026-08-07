@@ -16,7 +16,6 @@ import { EditEventV2, OpenEvent } from '@openscd/oscd-api';
 
 import {
   flattenPluginEntries,
-  isPluginGroup,
   loadSourcedPlugins,
 } from './utils/plugin-utils.js';
 import { getLocale, LocaleTag, setLocale } from './localization.js';
@@ -27,6 +26,7 @@ import { RenameEvent, CloseEvent } from './foundation/events.js';
 import { FilesMenu } from './menus/files-menu.js';
 import { oscdShellDesignTokens } from './oscd-shell-design-tokens.js';
 import { OscdAppBar } from '@omicronenergy/oscd-ui/app-bar/OscdAppBar.js';
+import { OscdDivider } from '@omicronenergy/oscd-ui/divider/OscdDivider.js';
 import { OscdIcon } from '@omicronenergy/oscd-ui/icon/OscdIcon.js';
 
 export interface PluginBase {
@@ -70,6 +70,7 @@ export class OscdShell extends ScopedElementsMixin(LitElement) {
   static scopedElements = {
     'oscd-app-bar': OscdAppBar,
     'oscd-filled-icon-button': OscdFilledIconButton,
+    'oscd-divider': OscdDivider,
     'oscd-icon': OscdIcon,
     'files-menu': FilesMenu,
     'plugins-menu': PluginsMenu,
@@ -221,17 +222,9 @@ export class OscdShell extends ScopedElementsMixin(LitElement) {
 
   willUpdate(changedProperties: Map<PropertyKey, unknown>) {
     if (changedProperties.has('docName') || changedProperties.has('plugins')) {
-      if (
-        this.docName &&
-        this.plugins.editor.length > 0 &&
-        !this.selectedEditor
-      ) {
-        const firstEditorItem = this.plugins.editor[0];
-        if (isPluginGroup(firstEditorItem)) {
-          this.selectedEditor = firstEditorItem.plugins[0];
-        } else {
-          this.selectedEditor = firstEditorItem;
-        }
+      const firstEditor = flattenPluginEntries(this.plugins.editor)[0];
+      if (this.docName && firstEditor && !this.selectedEditor) {
+        this.selectedEditor = firstEditor;
       }
     }
   }
@@ -440,18 +433,29 @@ export class OscdShell extends ScopedElementsMixin(LitElement) {
             this.handlePluginMenuSelect(event)}
         ></plugins-menu>
 
-        <files-menu
-          slot="alignMiddle"
-          .selectedDocName=${this.docName}
-          .editableDocs=${this.editableDocs}
-          .locale=${this.locale}
-          @change=${(event: CustomEvent) => {
-            const name = event.detail.name as string;
-            this.docName = name;
-          }}
-        ></files-menu>
+        ${this.selectedEditor
+          ? html`<div class="current-editor" slot="alignStart">
+              <oscd-divider class="vertical" aria-hidden="true"></oscd-divider>
+              <span>${this.selectedEditor.name}</span>
+            </div>`
+          : nothing}
 
         <div slot="alignEnd">
+          ${this.docName
+            ? html`<files-menu
+                  .selectedDocName=${this.docName}
+                  .editableDocs=${this.editableDocs}
+                  .locale=${this.locale}
+                  @change=${(event: CustomEvent) => {
+                    const name = event.detail.name as string;
+                    this.docName = name;
+                  }}
+                ></files-menu>
+                <oscd-divider
+                  class="vertical"
+                  aria-hidden="true"
+                ></oscd-divider>`
+            : nothing}
           <oscd-filled-icon-button
             aria-label="${msg('Undo')}"
             ?disabled=${!this.canUndo}
@@ -520,6 +524,37 @@ export class OscdShell extends ScopedElementsMixin(LitElement) {
         grid-area: header;
         box-shadow: var(--md-sys-elevation-level-2);
         z-index: 10;
+      }
+
+      .current-editor {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-right: 12px;
+        color: var(--app-bar-current-editor-color);
+        font-family: var(--app-bar-current-editor-font-family);
+        font-size: var(--app-bar-current-editor-font-size);
+        font-style: var(--app-bar-current-editor-font-style);
+        line-height: var(--app-bar-current-editor-line-height);
+        font-weight: var(--app-bar-current-editor-font-weight);
+        white-space: nowrap;
+      }
+
+      oscd-divider.vertical {
+        width: 1px;
+        height: 32px;
+        --md-divider-color: var(--app-bar-separator-color, currentColor);
+        opacity: var(--app-bar-separator-opacity, 0.38);
+      }
+
+      [slot='alignEnd'] {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      [slot='alignEnd'] oscd-divider.vertical {
+        margin: 0 8px;
       }
 
       oscd-app-bar * {

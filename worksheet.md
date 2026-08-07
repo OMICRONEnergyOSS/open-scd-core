@@ -43,7 +43,7 @@ Below is an ordered (numbered) list of action items. Fully completed action item
 4. Pinned editor ✅
 5. Search editors 🟡
 6. Localization pass (static UI strings + unique group ids) ✅
-7. App bar improvements (current editor left, file selector right)
+7. App bar improvements (current editor left, file selector right) ✅
 8. Collapsible side panel (icon rail + group popout) 🟡
    8a. Search on collapsed, temporarily opens flyout and closes after selection
 
@@ -66,7 +66,7 @@ Each action item can be detailed here. Titles are suffixed with "✅", when comp
 - `editor-plugins-panel.ts` renders `oscd-tree`; `buildTreeNodes` maps groups→branches, plugins→leaves.
 - Group names localized via `translations[locale] ?? name`.
 
-## 4. Pinned editor 🟡
+## 4. Pinned editor ✅
 
 - Pin/unpin via leaf accessory; `pinnedPluginIds`/`pinnedExpanded` persisted (`@localstorage()`).
 - Gaps: "Pinned" label + aria-labels hardcoded English (see item 6).
@@ -97,8 +97,13 @@ Remaining (not required for this item):
 
 ## 7. App bar improvements
 
-- Show current editor name left of logo/menu with separator (design: "OpenSCD ⌄ | Edit Substation").
-- Move file selector to right side with separator before undo/redo (currently `alignMiddle`).
+- Show current editor name left of logo/menu with separator (design: "OpenSCD ⌄ | Edit Substation") ✅
+- Move file selector to right side with separator before undo/redo (previously `alignMiddle`) ✅
+- Corrected order to logo/menu → vertical `oscd-divider` → current editor.
+- Current editor and file selector separators are rendered only when their corresponding value exists.
+- Current editor selection now uses the flattened editor list when the document and plugins become available.
+- Uses the existing app-bar typography variables for the current editor label.
+- Added structural unit coverage for app-bar slot placement and divider/action presence.
 - Ref: `figma-designs/regular-look.png`, `regular-look-file-switching.png`.
 
 ## 8. Collapsible side panel 🟡 (largely done — 2026-07-17)
