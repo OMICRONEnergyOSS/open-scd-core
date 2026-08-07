@@ -38,6 +38,9 @@
   <source>Expand sidebar</source>
   <target>Seitenleiste ausklappen</target>
 </trans-unit>
+<trans-unit id="s3e2b2947e76caf9c">
+  <source>Items you pin will appear here</source>
+</trans-unit>
 </body>
 </file>
 </xliff>

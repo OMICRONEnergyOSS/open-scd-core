@@ -289,6 +289,15 @@ describe('editor-plugins-panel', () => {
     expect(dispatched).to.be.false;
   });
 
+  it('ignores an unknown editor selection id', async () => {
+    let dispatched = false;
+    editorPluginsPanel.addEventListener('editor-select', () => {
+      dispatched = true;
+    });
+    editorPluginsPanel.selectEditor(['unknown-editor']);
+    expect(dispatched).to.be.false;
+  });
+
   describe('transient search mode (collapsed rail)', () => {
     const collapse = async (panel: EditorPluginsPanel) => {
       findPanelToggleButton(panel).click();
@@ -376,6 +385,28 @@ describe('editor-plugins-panel', () => {
       expect(editorPluginsPanel.hasAttribute('search-mode')).to.be.false;
       expect(editorPluginsPanel.expanded).to.be.false;
     });
+
+    it('selects a root editor from the collapsed rail', async () => {
+      await collapse(editorPluginsPanel);
+
+      const editor = oscdShell.plugins.editor[0] as PluginEntry;
+      const railEditors = editorPluginsPanel.shadowRoot!.querySelectorAll(
+        '.rail > oscd-icon-button.rail-item',
+      );
+      const railEditor = railEditors[2] as HTMLElement;
+      expect(!!railEditor).to.be.true;
+      let selected: PluginEntry | undefined;
+      editorPluginsPanel.addEventListener('editor-select', (event: Event) => {
+        selected = (event as CustomEvent).detail.editor;
+      });
+
+      railEditor.dispatchEvent(
+        new MouseEvent('click', { bubbles: true, composed: true }),
+      );
+      await editorPluginsPanel.updateComplete;
+
+      expect(selected?.tagName).to.equal(editor.tagName);
+    });
   });
 
   describe('pinned/editors tree expand-state persistence', () => {
@@ -446,6 +477,18 @@ describe('editor-plugins-panel', () => {
       groupedPanel.shadowRoot!.querySelector(
         'oscd-menu.rail-flyout[data-flyout="group-0"]',
       ) as OscdMenu;
+
+    it('shows a disabled placeholder in the empty pinned flyout', () => {
+      const pinnedFlyout = groupedPanel.shadowRoot!.querySelector(
+        'oscd-menu.rail-flyout[data-flyout="pinned"]',
+      );
+      const placeholder = pinnedFlyout?.querySelector('oscd-menu-item');
+
+      expect(placeholder?.hasAttribute('disabled')).to.be.true;
+      expect(placeholder?.textContent).to.contain(
+        'Items you pin will appear here',
+      );
+    });
 
     it('opens the group flyout menu on rail icon click', async () => {
       const menu = findGroupFlyoutMenu();
