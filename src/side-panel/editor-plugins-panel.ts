@@ -657,6 +657,8 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
          with the row labels. See .tree-container / oscd-tree geometry. */
       --md-outlined-field-leading-space: 8px;
       --md-outlined-field-trailing-space: 8px;
+      --md-outlined-field-with-leading-content-leading-space: 10px;
+      --md-outlined-field-content-space: 10px;
 
       /* keep the outline light in every state */
       --md-outlined-text-field-focus-outline-color: var(
