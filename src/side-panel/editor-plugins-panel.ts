@@ -28,7 +28,13 @@ import { OscdOutlinedTextField } from '@omicronenergy/oscd-ui/textfield/OscdOutl
 import { OscdDivider } from '@omicronenergy/oscd-ui/divider/OscdDivider.js';
 import { localstorage } from '@omicronenergy/oscd-ui/decorators/localstorage.js';
 
-type EditorPluginTreeNode = (PluginGroup | PluginEntry) &
+type PlaceholderTreeNode = {
+  kind: 'placeholder';
+  name: string;
+  translations?: Record<string, string>;
+};
+
+type EditorPluginTreeNode = (PluginGroup | PluginEntry | PlaceholderTreeNode) &
   TreeNode & {
     children?: EditorPluginTreeNode[];
     plugins?: EditorPluginTreeNode[];
@@ -93,6 +99,12 @@ export function buildTreeNodes(
     }
     return pluginEntryToTreeNode(editor as PluginEntry);
   });
+}
+
+function renderFlyoutPlaceholder() {
+  return html`<oscd-menu-item disabled>
+    <div slot="headline">${msg('Items you pin will appear here')}</div>
+  </oscd-menu-item>`;
 }
 
 @localized()
@@ -185,13 +197,23 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
       changedProperties.has('locale')
     ) {
       const pinnedPlugins = filterByPinned(this.editors, this.pinnedPluginIds);
+      const pinnedChildren: EditorPluginTreeNode[] = pinnedPlugins.length
+        ? buildTreeNodes(pinnedPlugins)
+        : [
+            {
+              kind: 'placeholder',
+              name: msg('Items you pin will appear here'),
+              id: 'pinned-placeholder',
+              children: [],
+            },
+          ];
       this.pinnedTreeNodes = [
         {
           id: 'pinned',
           name: msg('Pinned'),
           icon: 'keep',
           plugins: [],
-          children: buildTreeNodes(pinnedPlugins),
+          children: pinnedChildren,
         },
       ];
     }
@@ -216,6 +238,9 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
     const editor = flattenPluginEntries(this.editors).find(
       editor => editor.tagName === selectedId,
     );
+    if (!editor) {
+      return;
+    }
     this.dispatchEditorSelect(editor);
   }
 
@@ -293,10 +318,14 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
     }
   }
 
-  renderPluginItem({ node, level }: TreeRenderContext<EditorPluginTreeNode>) {
+  renderPluginItem({
+    node,
+    level,
+    disabled,
+  }: TreeRenderContext<EditorPluginTreeNode>) {
     const label = node.translations?.[this.locale] ?? node.name;
-    return html`<oscd-tree-item>
-      ${level === 1
+    return html`<oscd-tree-item ?disabled=${disabled}>
+      ${level === 1 && !('kind' in node)
         ? html`<oscd-icon slot="start">${node.icon}</oscd-icon>`
         : nothing}
       <span slot="headline" title=${label}>${label}</span>
@@ -338,6 +367,11 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
                 .selectedIds=${this.selectedEditor
                   ? [this.selectedEditor.tagName]
                   : []}
+                .isDisabled=${(node: EditorPluginTreeNode) =>
+                  'kind' in node && node.kind === 'placeholder'}
+                .isSelectable=${(node: EditorPluginTreeNode) =>
+                  !('kind' in node && node.kind === 'placeholder')}
+                class="pinned-tree"
                 .renderItem=${(
                   context: TreeRenderContext<EditorPluginTreeNode>,
                 ) => this.renderPluginItem(context)}
@@ -365,6 +399,10 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
           .selectedIds=${this.selectedEditor
             ? [this.selectedEditor.tagName]
             : []}
+          .isDisabled=${(node: EditorPluginTreeNode) =>
+            'kind' in node && node.kind === 'placeholder'}
+          .isSelectable=${(node: EditorPluginTreeNode) =>
+            !('kind' in node && node.kind === 'placeholder')}
           .renderItem=${(context: TreeRenderContext<EditorPluginTreeNode>) =>
             this.renderPluginItem(context)}
           .renderLeafAccessory=${(
@@ -402,6 +440,7 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
         ${this.renderRailGroup(
           { name: msg('Pinned'), icon: 'keep', plugins: pinnedPlugins },
           'pinned',
+          true,
         )}
         <oscd-divider></oscd-divider>
         ${this.editors.map((entry, index) =>
@@ -413,7 +452,11 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
     `;
   }
 
-  private renderRailGroup(group: PluginGroup, anchorId: string) {
+  private renderRailGroup(
+    group: PluginGroup,
+    anchorId: string,
+    showEmptyPlaceholder = false,
+  ) {
     const label = group.translations?.[this.locale] ?? group.name;
     const active = group.plugins.some(
       plugin => plugin.tagName === this.selectedEditor?.tagName,
@@ -440,7 +483,11 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
       >
         <div class="flyout-header" role="presentation">${label}</div>
         <oscd-divider class="flyout-divider"></oscd-divider>
-        ${group.plugins.map(plugin => this.renderFlyoutItem(plugin))}
+        ${group.plugins.length > 0
+          ? group.plugins.map(plugin => this.renderFlyoutItem(plugin))
+          : showEmptyPlaceholder
+            ? renderFlyoutPlaceholder()
+            : nothing}
       </oscd-menu>
     `;
   }
@@ -624,6 +671,8 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
       /* Separates the group heading from its editor items. */
       --md-divider-color: var(--editor-plugins-panel-divider-color);
       margin-block: 4px;
+      width: 80%;
+      margin: auto;
     }
 
     .rail-flyout oscd-menu-item {
@@ -740,6 +789,11 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
       --oscd-tree-row-selected-text-color: var(
         --editor-plugins-panel-item-text-color
       );
+    }
+
+    oscd-tree.pinned-tree {
+      --oscd-tree-leaf-toggle-size: 0px;
+      --oscd-tree-leaf-toggle-gap: 0px;
     }
 
     oscd-divider {
