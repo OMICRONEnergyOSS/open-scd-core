@@ -163,6 +163,9 @@ Done 2026-08-06:
   - **oscd-shell** `editor-plugins-panel.ts`: added `min-width: 0` to `.tree-container`; added Option-A accessible tooltip via `title=${label}` on the headline span (full name on hover/focus when truncated).
 - Verified (Playwright): tree width 325px → **228px**, trailing controls right-edge 343 → **246** (inside the 280 panel); all group chevrons + leaf pins visible; long label truncates with `…`. oscd-shell 125 tests pass; oscd-ui tree spec 9 pass.
 - Remaining under I3: actual row-height/spacing density tuning vs Figma (row height, indent-step, selected-leaf block, empty-Pinned trailing chevron).
+- Fixed ✅
+  1. Corrections applied to oscd-ui
+  2. added min-width:0; and set panel default width to the figma design width of 308px.
 
 ## I4. Duplicate/dead collapse+persist mechanism 🟡 LOW ✅ DONE (item 8)
 
