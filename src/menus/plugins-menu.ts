@@ -15,7 +15,7 @@ import { isPluginGroup } from '../utils/plugin-utils.js';
 
 declare global {
   interface HTMLElementTagNameMap {
-    'plugin-menu': PluginsMenu;
+    'plugins-menu': PluginsMenu;
   }
 }
 
@@ -110,7 +110,7 @@ export class PluginsMenu extends ScopedElementsMixin(LitElement) {
             this.menu.show();
           }
         }}
-        ><oscd-icon>arrow_drop_down_circle</oscd-icon></oscd-filled-icon-button
+        ><oscd-icon>arrow_drop_down</oscd-icon></oscd-filled-icon-button
       >
       <oscd-menu
         has-overflow
