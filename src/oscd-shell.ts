@@ -232,7 +232,7 @@ export class OscdShell extends ScopedElementsMixin(LitElement) {
   connectedCallback() {
     super.connectedCallback();
 
-    document.addEventListener('keydown', this.handleKeyPress);
+    document.addEventListener('keydown', this.handleKeyPress, true);
     this.addEventListener('oscd-open', this.handleOpenDoc);
     this.addEventListener('oscd-rename', this.handleRenameDoc);
     this.addEventListener('oscd-close', this.handleCloseDoc);
@@ -245,7 +245,7 @@ export class OscdShell extends ScopedElementsMixin(LitElement) {
     super.disconnectedCallback();
 
     // Remove event listeners
-    document.removeEventListener('keydown', this.handleKeyPress);
+    document.removeEventListener('keydown', this.handleKeyPress, true);
     this.removeEventListener('oscd-open', this.handleOpenDoc);
     this.removeEventListener('oscd-rename', this.handleRenameDoc);
     this.removeEventListener('oscd-edit-v2', this.handleEditV2);
@@ -305,6 +305,20 @@ export class OscdShell extends ScopedElementsMixin(LitElement) {
   };
 
   private handleKeyPress = (e: KeyboardEvent) => {
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'f') {
+      const panel = this.shadowRoot?.querySelector<EditorPluginsPanel>(
+        'editor-plugins-panel',
+      );
+      if (panel) {
+        if (!panel.expanded) {
+          panel.searchMode = true;
+        }
+        panel.focusSearch(true);
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      return;
+    }
     if (!e.ctrlKey) {
       return;
     }
