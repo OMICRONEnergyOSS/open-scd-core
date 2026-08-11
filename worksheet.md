@@ -44,8 +44,8 @@ Below is an ordered (numbered) list of action items. Fully completed action item
 5. Search editors 🟡
 6. Localization pass (static UI strings + unique group ids) ✅
 7. App bar improvements (current editor left, file selector right) ✅
-8. Collapsible side panel (icon rail + group popout) 🟡
-   8a. Search on collapsed, temporarily opens flyout and closes after selection
+8. Collapsible side panel (icon rail + group popout) ✅
+   8a. Search on collapsed, temporarily opens flyout and closes after selection ✅
 
 # Action Item Details
 
@@ -69,12 +69,35 @@ Each action item can be detailed here. Titles are suffixed with "✅", when comp
 ## 4. Pinned editor ✅
 
 - Pin/unpin via leaf accessory; `pinnedPluginIds`/`pinnedExpanded` persisted (`@localstorage()`).
-- Gaps: "Pinned" label + aria-labels hardcoded English (see item 6).
+- Empty pinned state uses a disabled placeholder in the expanded tree and collapsed flyout.
 
 ## 5. Search editors 🟡
 
-- `filterBySearchTerm` matches leaf `name` only (group names intentionally excluded).
-- Open: search matches untranslated `name` (DE labels won't match); Ctrl+F and enter-to-launch not done (nice-to-have).
+- `filterBySearchTerm` matches leaf `name` and the localized label (group names intentionally excluded).
+- Collapsed rail search opens transient search mode and exits after editor selection.
+- Remaining optional enhancements: Ctrl+F and Enter-to-launch when there is one result.
+
+### Keyboard navigation mini-spec (2026-08-10) 🟡
+
+- Arrow navigation is available whenever the panel is open, not only after searching.
+- The search field remains a normal focusable control; pressing Up/Down starts navigation among visible panel items.
+- Navigation order is: pinned group/items (when shown), then editor groups/items.
+- Groups and editor leaves can be highlighted. Group Enter toggles expansion; editor Enter dispatches `editor-select`.
+- Search-field Enter selects the editor only when exactly one editor result remains; otherwise it does nothing.
+- Highlighting is tree-owned: the panel coordinates each tree's `activeId`; `keyboard-active` is applied only to the tree that currently owns focus, and active-row styling is opt-in through the tree class.
+- Highlighting clears when the target disappears from the current results. Search changes preserve the query and only clear an invalid target.
+- Refocusing the search field does not clear results. `Ctrl+Shift+F`/`Meta+Shift+F` focuses the field and selects all existing text so typing replaces it.
+- Escape exits transient search mode and clears its query; normal expanded-panel Escape behavior remains non-destructive.
+- Arrow navigation stops at list boundaries; it does not wrap.
+
+Implementation started:
+
+- Per-tree active IDs and native tree focus/boundary coordination are implemented using `active-changed`, `navigation-boundary`, `getFirstNodeId()`, and `getLastNodeId()`.
+- Arrow keys, group expansion, editor Enter, single-result search Enter, transient Escape, and Ctrl/Meta+Shift+F focus behavior are implemented.
+- Initial unit coverage added for arrow highlighting and query preservation on refocus.
+- `oscd-ui` tree now exposes controlled `activeId` and active-row design tokens; the shell configures the active row border/text as white.
+- `oscd-ui` tests: 174 passed. Shell tests: 146 passed.
+- Remaining: expand coverage for grouped navigation, pinned leaves, boundary behavior, shortcut behavior, and transient-mode selection; review visual highlight tokens.
 
 ## 6. Localization pass (static UI strings + unique group ids) ✅
 
@@ -106,7 +129,7 @@ Remaining (not required for this item):
 - Added structural unit coverage for app-bar slot placement and divider/action presence.
 - Ref: `figma-designs/regular-look.png`, `regular-look-file-switching.png`.
 
-## 8. Collapsible side panel 🟡 (largely done — 2026-07-17)
+## 8. Collapsible side panel ✅
 
 - Collapse to icon rail (group / root-editor icons); persist state in localStorage.
 - Group icons show pop-out menu to the right on hover.
@@ -125,7 +148,7 @@ Open (obvious/minor — deferred):
 - Active-highlight colour not yet tuned to Figma (French-blue-15 `#0B335B`); currently `--oscd-primary`.
 - Footer/flyout density + spacing fine-tuning vs Figma still pending.
 - A11y: `oscd-list-item type="button"` hardcodes `role="listitem"` (announces as list item, not button); mitigated with `aria-label`. Revisit if strict button semantics are wanted (e.g. upstream `role` override or use a real button with row styling).
-- Visual-regression `*.test.ts` baselines need regenerating for the new footer/flyout/rail; the stale `oscd-list` tab-click test is still failing (pre-existing, unrelated).
+- Visual regression baselines are CI-owned; local VTR screenshot differences are diagnostic only and should not be regenerated or committed locally.
 - Proper fix for the transparent-panel default surface is tracked separately (see Tech Debt + `panel-default-surface` todo) — not required for item 8.
 
 Done 2026-08-06:
@@ -147,10 +170,12 @@ Done 2026-08-06:
 - The only persistence test covered the separate hand-rolled `expanded` getter/setter (key `editorsPanel.expanded`), NOT the `@localstorage()` decorator props — which is why I1 went undetected.
 - Added (`editor-plugins-panel.spec.ts`): `mountFreshPanel()` helper simulates a reload; nested describe "restores persisted state on reload (fresh mount)" seeds `expandedIds`/`pinnedPluginIds`/`pinnedExpanded`/`expanded`, asserts each is applied on mount AND that construction does not overwrite it (regression guard for I1). Updated the two `expanded` tests to the new decorator key (JSON-encoded); centralised keys in `LS_KEYS`. Verified the guard bites by temporarily reintroducing the field-initializer bug (test failed as expected). 125 tests pass, coverage 91.6%.
 
-## I3. Side-panel spacing/density mismatch vs Figma 🟠 MED (partially addressed)
+## I3. Side-panel spacing/density mismatch vs Figma ✅
 
 - Rows taller/sparser than `regular-look.png`. Suspects: tree row height/vertical padding, `--oscd-tree-indent-step` (currently 40px), oversized selected-leaf row block, search field + group-header typography/size, pinned row trailing chevron when empty.
-- Action: derive exact spacings from Figma, map to `editor-plugins-panel` design tokens.
+- Validated visually against `regular-look.png` after the search placeholder correction.
+- Expanded panel width defaults to the Figma width of `308px`; collapsed width remains themeable.
+- Tree row height, row pitch, indentation, selected-row geometry, and panel spacing are close enough to the design.
 
 ### I3a. Trailing chevrons/pins clipped + long labels not truncating ✅ FIXED
 
@@ -162,10 +187,8 @@ Done 2026-08-06:
   - **oscd-ui** `tree/internal/Tree.ts`: added `min-width: 0` to `oscd-tree`'s `:host` so the tree is a well-behaved flex/grid child by default for every consumer - fixed in oscd-ui 0.0.15.
   - **oscd-shell** `editor-plugins-panel.ts`: added `min-width: 0` to `.tree-container`; added Option-A accessible tooltip via `title=${label}` on the headline span (full name on hover/focus when truncated).
 - Verified (Playwright): tree width 325px → **228px**, trailing controls right-edge 343 → **246** (inside the 280 panel); all group chevrons + leaf pins visible; long label truncates with `…`. oscd-shell 125 tests pass; oscd-ui tree spec 9 pass.
-- Remaining under I3: actual row-height/spacing density tuning vs Figma (row height, indent-step, selected-leaf block, empty-Pinned trailing chevron).
-- Fixed ✅
-  1. Corrections applied to oscd-ui
-  2. added min-width:0; and set panel default width to the figma design width of 308px.
+- Added `--oscd-tree-leaf-toggle-size` and `--oscd-tree-leaf-toggle-gap` in oscd-ui; the Pinned tree sets both to `0px` because it has no leaf accessories.
+- Empty Pinned state now shows a disabled placeholder in both expanded and collapsed views: “Items you pin will appear here.”
 
 ## I4. Duplicate/dead collapse+persist mechanism 🟡 LOW ✅ DONE (item 8)
 
@@ -175,7 +198,5 @@ Done 2026-08-06:
 # Findings / Tech Debt
 
 - **Editor-plugins-panel has no default surface — transparent by default (design debt, high-impact UX).** The panel renders light ("white") foreground text/icons on a _transparent_ background; the visible blue only comes from a background image/colour set by the host page (e.g. the demo's `background.svg`). Anyone embedding the shell without setting a background on `html`/`body` gets white-on-transparent content, so the plugin items are effectively invisible — the classic "why does only the first editor item show?" trap (they all show, you just can't see them). Fix: give the panel a sensible **default surface colour aligned with the Material palette + main colour palette**, with matching sensible **foreground** colours, and expose design tokens so the current transparent look can still be opted into (set the surface token to `transparent` for @stee-re's own theme/background image). This also removes the current `--md-sys-color-*` override fight: the shell's `* { --md-sys-color-on-surface: base00 }` beats the panel's `:host` override, which only "works" today because the foreground is separately forced white — a proper panel surface + on-surface scheme fixes both.
-- `selectedEditor` uses `@property({ type: Number })` in `editor-plugins-panel.ts` (should be object).
-- Global tag decl `'plugin-menu'` vs registered `'plugins-menu'` mismatch.
 - `expanded` uses `@localstorage({ default: true })` (was a hand-rolled getter/setter on raw `localStorage`); as of item 8 the footer toggle is visible, so persistence now has a visible effect.
-- Clicking on pinned displays an empty editor. Consider behavior of empty pinned section. Disabled?
+- Optional: consider Ctrl+F and Enter-to-launch behavior for editor search.

@@ -165,6 +165,9 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
   @state()
   searchValue = '';
 
+  @state()
+  focusedTree: 'pinned' | 'editors' | null = null;
+
   @localstorage({ default: [] })
   @state()
   expandedIds!: string[];
@@ -272,19 +275,59 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
   }
 
   private handleKeydown = (event: KeyboardEvent) => {
+    const fromSearchField =
+      (event.currentTarget as Element | null)?.localName ===
+        'oscd-outlined-text-field' ||
+      event
+        .composedPath()
+        .some(
+          target =>
+            (target as Element).localName === 'oscd-outlined-text-field',
+        );
     if (event.key === 'Escape' && this.searchMode) {
       event.stopPropagation();
       this.exitSearchMode();
+      return;
+    }
+
+    if (
+      fromSearchField &&
+      (event.key === 'ArrowDown' || event.key === 'ArrowUp')
+    ) {
+      event.preventDefault();
+      event.stopPropagation();
+      this.startTreeNavigation(event.key === 'ArrowDown' ? 'down' : 'up');
+      return;
+    }
+
+    if (fromSearchField && event.key === 'Enter') {
+      event.preventDefault();
+      event.stopPropagation();
+      this.activateKeyboardTarget();
     }
   };
 
   /** Opens the panel transiently for searching (does not persist `expanded`). */
   private enterSearchMode() {
     this.searchMode = true;
+    this.focusSearch(true);
+  }
+
+  /** Focuses the search field, optionally selecting its current query. */
+  focusSearch(selectQuery = false) {
+    const focusField = () => {
+      const searchField = this.shadowRoot?.querySelector<OscdOutlinedTextField>(
+        'oscd-outlined-text-field',
+      );
+      searchField?.focus();
+      if (selectQuery) {
+        searchField?.select();
+      }
+    };
+
     this.updateComplete.then(() => {
-      this.shadowRoot
-        ?.querySelector<OscdOutlinedTextField>('oscd-outlined-text-field')
-        ?.focus();
+      focusField();
+      requestAnimationFrame(() => requestAnimationFrame(focusField));
     });
   }
 
@@ -292,6 +335,109 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
   private exitSearchMode() {
     this.searchMode = false;
     this.searchValue = '';
+    this.focusedTree = null;
+  }
+
+  private getTree(kind: 'pinned' | 'editors'): OscdTree | null {
+    return (
+      this.shadowRoot?.querySelector<OscdTree>(`oscd-tree.${kind}-tree`) ?? null
+    );
+  }
+
+  private focusTree(
+    kind: 'pinned' | 'editors',
+    activeId: string | null,
+  ): boolean {
+    const tree = this.getTree(kind);
+    if (!tree || !activeId) {
+      return false;
+    }
+    tree.activeId = activeId;
+    this.focusedTree = kind;
+    tree.focus();
+    return true;
+  }
+
+  private startTreeNavigation(direction: 'up' | 'down') {
+    const first = direction === 'down';
+    const pinnedTree = this.getTree('pinned');
+    if (this.searchValue.trim().length === 0 && pinnedTree) {
+      const activeId = this.focusTree(
+        'pinned',
+        first ? pinnedTree.getFirstNodeId() : pinnedTree.getLastNodeId(),
+      );
+      if (activeId) {
+        return;
+      }
+    }
+    const editorsTree = this.getTree('editors');
+    this.focusTree(
+      'editors',
+      editorsTree
+        ? first
+          ? editorsTree.getFirstNodeId()
+          : editorsTree.getLastNodeId()
+        : null,
+    );
+  }
+
+  private handleTreeActiveChanged(kind: 'pinned' | 'editors') {
+    this.focusedTree = kind;
+  }
+
+  private handleTreeFocus(kind: 'pinned' | 'editors') {
+    this.focusedTree = kind;
+  }
+
+  private handleTreeSelection(
+    kind: 'pinned' | 'editors',
+    selectedIds: string[],
+  ) {
+    const tree = this.getTree(kind);
+    const selectedId = selectedIds[0];
+    const selectedNode = tree?.data.find(node => node.id === selectedId);
+    if (tree && selectedNode?.children?.length && selectedId) {
+      tree.toggle(selectedId);
+      return;
+    }
+    this.selectEditor(selectedIds);
+  }
+
+  private handleTreeBoundary(
+    kind: 'pinned' | 'editors',
+    direction: 'first' | 'last',
+  ) {
+    if (kind === 'pinned' && direction === 'last') {
+      this.focusTree(
+        'editors',
+        this.getTree('editors')?.getFirstNodeId() ?? null,
+      );
+    } else if (
+      kind === 'editors' &&
+      direction === 'first' &&
+      this.searchValue.trim().length === 0
+    ) {
+      this.focusTree('pinned', this.getTree('pinned')?.getLastNodeId() ?? null);
+    }
+  }
+
+  private activateKeyboardTarget() {
+    if (!this.focusedTree) {
+      if (
+        this.shadowRoot?.activeElement?.localName ===
+          'oscd-outlined-text-field' &&
+        flattenPluginEntries(
+          filterBySearchTerm(this.editors, this.searchValue, this.locale),
+        ).length === 1
+      ) {
+        this.dispatchEditorSelect(
+          flattenPluginEntries(
+            filterBySearchTerm(this.editors, this.searchValue, this.locale),
+          )[0],
+        );
+      }
+      return;
+    }
   }
 
   /** Toggles the persisted expanded/collapsed state via the footer control. */
@@ -322,9 +468,10 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
     node,
     level,
     disabled,
+    active,
   }: TreeRenderContext<EditorPluginTreeNode>) {
     const label = node.translations?.[this.locale] ?? node.name;
-    return html`<oscd-tree-item ?disabled=${disabled}>
+    return html`<oscd-tree-item ?disabled=${disabled} ?active=${active}>
       ${level === 1 && !('kind' in node)
         ? html`<oscd-icon slot="start">${node.icon}</oscd-icon>`
         : nothing}
@@ -351,6 +498,7 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
         <oscd-outlined-text-field
           label=${msg('Search')}
           .value=${this.searchValue}
+          @keydown=${this.handleKeydown}
           @input=${(event: Event) => {
             const input = event.target as HTMLInputElement;
             this.searchValue = input.value;
@@ -372,6 +520,8 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
                 .isSelectable=${(node: EditorPluginTreeNode) =>
                   !('kind' in node && node.kind === 'placeholder')}
                 class="pinned-tree"
+                ?keyboard-active=${this.focusedTree === 'pinned'}
+                @focusin=${() => this.handleTreeFocus('pinned')}
                 .renderItem=${(
                   context: TreeRenderContext<EditorPluginTreeNode>,
                 ) => this.renderPluginItem(context)}
@@ -380,17 +530,24 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
                 expand-icon="arrow_drop_down"
                 @selected-ids-changed=${(
                   event: CustomEvent<{ selectedIds: string[] }>,
-                ) => this.selectEditor(event.detail.selectedIds)}
+                ) =>
+                  this.handleTreeSelection('pinned', event.detail.selectedIds)}
                 @expanded-ids-changed=${(
                   event: CustomEvent<{ expandedIds: string[] }>,
                 ) => {
                   this.pinnedExpanded = event.detail.expandedIds;
                 }}
+                @active-changed=${() => this.handleTreeActiveChanged('pinned')}
+                @navigation-boundary=${(
+                  event: CustomEvent<{ direction: 'first' | 'last' }>,
+                ) => this.handleTreeBoundary('pinned', event.detail.direction)}
               ></oscd-tree>
               <oscd-divider></oscd-divider>`
           : nothing}
         <oscd-tree
           class="editors-tree"
+          ?keyboard-active=${this.focusedTree === 'editors'}
+          @focusin=${() => this.handleTreeFocus('editors')}
           .data=${this.editorTreeNodes}
           .expandedIds=${this.searchValue.length === 0
             ? this.expandedIds
@@ -413,12 +570,16 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
           expand-icon="arrow_drop_up"
           @selected-ids-changed=${(
             event: CustomEvent<{ selectedIds: string[] }>,
-          ) => this.selectEditor(event.detail.selectedIds)}
+          ) => this.handleTreeSelection('editors', event.detail.selectedIds)}
           @expanded-ids-changed=${(
             event: CustomEvent<{ expandedIds: string[] }>,
           ) => {
             this.expandedIds = event.detail.expandedIds;
           }}
+          @active-changed=${() => this.handleTreeActiveChanged('editors')}
+          @navigation-boundary=${(
+            event: CustomEvent<{ direction: 'first' | 'last' }>,
+          ) => this.handleTreeBoundary('editors', event.detail.direction)}
         ></oscd-tree>
       </div>
     `;
@@ -694,6 +855,17 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
          editors tree): 12px per the Figma spec. The divider therefore carries
          no margin of its own, avoiding compounding gap + margin. */
       gap: 12px;
+    }
+
+    oscd-tree {
+      --oscd-tree-row-active-border-width: 0px;
+      --oscd-tree-row-active-border-color: var(--oscd-base3, #fff);
+      --oscd-tree-row-active-text-color: var(--oscd-base3, #fff);
+      --oscd-tree-row-focus-ring-color: var(--oscd-base3, #fff);
+    }
+
+    oscd-tree.keyboard-active {
+      --oscd-tree-row-active-border-width: 1px;
     }
 
     oscd-outlined-text-field {

@@ -7,6 +7,7 @@ import { createTestDocs } from '../utils/testing/test-doc-helpers.js';
 import { sampleEditorPlugins } from '../utils/testing/plugin-helpers.js';
 import { TestMenuPlugin1 } from '../utils/testing/test-plugins.js';
 import type { OscdMenu } from '@omicronenergy/oscd-ui/menu/OscdMenu.js';
+import type { OscdTree } from '@omicronenergy/oscd-ui/tree/OscdTree.js';
 import { OscdOutlinedTextField } from '@omicronenergy/oscd-ui/textfield/OscdOutlinedTextField.js';
 import sinon from 'sinon';
 
@@ -227,6 +228,210 @@ describe('editor-plugins-panel', () => {
     // first entry; searching the German term must still match it.
     const names = editorPluginsPanel.editorTreeNodes.map(n => n.name);
     expect(names).to.include('Test Editor Plugin');
+  });
+
+  it('highlights editor nodes with arrow navigation without selecting them', async () => {
+    const field = editorPluginsPanel.shadowRoot!.querySelector(
+      'oscd-outlined-text-field',
+    )!;
+    field.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        key: 'ArrowDown',
+        bubbles: true,
+        composed: true,
+      }),
+    );
+    await editorPluginsPanel.updateComplete;
+
+    expect(editorPluginsPanel.focusedTree).to.equal('pinned');
+    expect(
+      (editorPluginsPanel.shadowRoot!.querySelector('.pinned-tree') as OscdTree)
+        .activeId,
+    ).to.equal('pinned');
+    expect(editorPluginsPanel.selectedEditor).to.exist;
+  });
+
+  it('preserves the search query when the field is refocused', async () => {
+    await setSearch('Plugin 2');
+    const field = editorPluginsPanel.shadowRoot!.querySelector(
+      'oscd-outlined-text-field',
+    ) as OscdOutlinedTextField;
+
+    editorPluginsPanel.focusSearch();
+    await editorPluginsPanel.updateComplete;
+
+    expect(field.value).to.equal('Plugin 2');
+    expect(editorPluginsPanel.editorTreeNodes).to.have.lengthOf(1);
+  });
+
+  it('hands search-field arrow navigation to the editor tree when searching', async () => {
+    await setSearch('Plugin');
+    const field = editorPluginsPanel.shadowRoot!.querySelector(
+      'oscd-outlined-text-field',
+    )!;
+    field.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        key: 'ArrowDown',
+        bubbles: true,
+        composed: true,
+      }),
+    );
+    await editorPluginsPanel.updateComplete;
+
+    const editorsTree = editorPluginsPanel.shadowRoot!.querySelector(
+      '.editors-tree',
+    ) as OscdTree;
+    expect(editorPluginsPanel.focusedTree).to.equal('editors');
+    expect(editorsTree.activeId).to.equal(editorsTree.getFirstNodeId());
+  });
+
+  it('starts search navigation at the last editor for ArrowUp', async () => {
+    await setSearch('Plugin');
+    const field = editorPluginsPanel.shadowRoot!.querySelector(
+      'oscd-outlined-text-field',
+    )!;
+    field.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        key: 'ArrowUp',
+        bubbles: true,
+        composed: true,
+      }),
+    );
+    await editorPluginsPanel.updateComplete;
+
+    const editorsTree = editorPluginsPanel.shadowRoot!.querySelector(
+      '.editors-tree',
+    ) as OscdTree;
+    expect(editorsTree.activeId).to.equal(editorsTree.getLastNodeId());
+  });
+
+  it('selects the only search result when Enter is pressed in the search field', async () => {
+    await setSearch('Plugin 2');
+    const field = editorPluginsPanel.shadowRoot!.querySelector(
+      'oscd-outlined-text-field',
+    ) as OscdOutlinedTextField;
+    let selected: PluginEntry | undefined;
+    editorPluginsPanel.addEventListener('editor-select', (event: Event) => {
+      selected = (event as CustomEvent).detail.editor;
+    });
+    field.focus();
+    field.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        key: 'Enter',
+        bubbles: true,
+        composed: true,
+      }),
+    );
+    await editorPluginsPanel.updateComplete;
+
+    expect(selected).to.exist;
+  });
+
+  it('does nothing on search-field Enter when multiple results remain', async () => {
+    await setSearch('Plugin');
+    const field = editorPluginsPanel.shadowRoot!.querySelector(
+      'oscd-outlined-text-field',
+    ) as OscdOutlinedTextField;
+    let selected = false;
+    editorPluginsPanel.addEventListener('editor-select', () => {
+      selected = true;
+    });
+    field.focus();
+    field.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        key: 'Enter',
+        bubbles: true,
+        composed: true,
+      }),
+    );
+    await editorPluginsPanel.updateComplete;
+
+    expect(selected).to.be.false;
+  });
+
+  it('updates the focused tree when the tree emits active-changed or receives focus', async () => {
+    const editorsTree = editorPluginsPanel.shadowRoot!.querySelector(
+      '.editors-tree',
+    ) as OscdTree;
+    editorsTree.dispatchEvent(new Event('focusin', { bubbles: true }));
+    expect(editorPluginsPanel.focusedTree).to.equal('editors');
+
+    editorsTree.dispatchEvent(
+      new CustomEvent('active-changed', {
+        detail: { activeId: editorsTree.activeId },
+        bubbles: true,
+      }),
+    );
+    expect(editorPluginsPanel.focusedTree).to.equal('editors');
+  });
+
+  it('does not focus a tree when the handoff has no active node', () => {
+    // @ts-expect-error focusTree is private; exercise its null-node guard.
+    expect(editorPluginsPanel.focusTree('editors', null)).to.be.false;
+  });
+
+  it('transfers focus from the pinned tree to the editor tree at its boundary', async () => {
+    const pinnedTree = editorPluginsPanel.shadowRoot!.querySelector(
+      '.pinned-tree',
+    ) as OscdTree;
+    const editorsTree = editorPluginsPanel.shadowRoot!.querySelector(
+      '.editors-tree',
+    ) as OscdTree;
+    pinnedTree.activeId = pinnedTree.getLastNodeId();
+    const focusSpy = sinon.spy(editorsTree, 'focus');
+
+    pinnedTree.dispatchEvent(
+      new CustomEvent('navigation-boundary', {
+        detail: { direction: 'last' },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+    await editorPluginsPanel.updateComplete;
+
+    expect(editorPluginsPanel.focusedTree).to.equal('editors');
+    expect(editorsTree.activeId).to.equal(editorsTree.getFirstNodeId());
+    expect(focusSpy.called).to.be.true;
+    focusSpy.restore();
+  });
+
+  it('transfers focus back to the pinned tree at the editor boundary', async () => {
+    const pinnedTree = editorPluginsPanel.shadowRoot!.querySelector(
+      '.pinned-tree',
+    ) as OscdTree;
+    const editorsTree = editorPluginsPanel.shadowRoot!.querySelector(
+      '.editors-tree',
+    ) as OscdTree;
+    editorPluginsPanel.focusedTree = 'editors';
+    editorsTree.activeId = editorsTree.getFirstNodeId();
+
+    editorsTree.dispatchEvent(
+      new CustomEvent('navigation-boundary', {
+        detail: { direction: 'first' },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+    await editorPluginsPanel.updateComplete;
+
+    expect(editorPluginsPanel.focusedTree).to.equal('pinned');
+    expect(pinnedTree.activeId).to.equal(pinnedTree.getLastNodeId());
+  });
+
+  it('does not transfer across the editor boundary while searching', async () => {
+    await setSearch('Plugin');
+    const editorsTree = editorPluginsPanel.shadowRoot!.querySelector(
+      '.editors-tree',
+    ) as OscdTree;
+    editorPluginsPanel.focusedTree = 'editors';
+    editorsTree.dispatchEvent(
+      new CustomEvent('navigation-boundary', {
+        detail: { direction: 'first' },
+        bubbles: true,
+      }),
+    );
+    await editorPluginsPanel.updateComplete;
+    expect(editorPluginsPanel.focusedTree).to.equal('editors');
   });
 
   it('pins and unpins an editor, persisting the ids to localStorage', async () => {
@@ -533,6 +738,24 @@ describe('editor-plugins-panel', () => {
       await groupedPanel.updateComplete;
 
       expect(selected?.tagName).to.equal('test-grouped-editor-1');
+    });
+
+    it('toggles a group when its tree selection is committed', async () => {
+      findPanelToggleButton(groupedPanel).click();
+      await groupedPanel.updateComplete;
+
+      const editorsTree = groupedPanel.shadowRoot!.querySelector(
+        '.editors-tree',
+      ) as OscdTree;
+      editorsTree.dispatchEvent(
+        new CustomEvent('selected-ids-changed', {
+          detail: { selectedIds: ['group:0:Grouped Editors'] },
+          bubbles: true,
+        }),
+      );
+      await groupedPanel.updateComplete;
+
+      expect(editorsTree.expandedIds).to.include('group:0:Grouped Editors');
     });
 
     it('marks the rail group icon active when one of its plugins is selected', async () => {

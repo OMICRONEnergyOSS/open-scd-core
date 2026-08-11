@@ -5,6 +5,8 @@ import { html } from 'lit';
 import './oscd-shell.js';
 
 import type { OscdShell } from './oscd-shell.js';
+import type { EditorPluginsPanel } from './side-panel/editor-plugins-panel.js';
+import sinon from 'sinon';
 
 import {
   createNonSclDocument,
@@ -244,6 +246,51 @@ describe('OscdShell Event Handling', () => {
   });
 
   describe('keypress events (the keyboard shortcuts)', () => {
+    it('focuses the expanded editor search with Ctrl+Shift+F', async () => {
+      const panel = oscdShell.shadowRoot!.querySelector(
+        'editor-plugins-panel',
+      ) as EditorPluginsPanel;
+      panel.expanded = true;
+      const focusSearch = sinon.spy(panel, 'focusSearch');
+
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'f',
+          ctrlKey: true,
+          shiftKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+
+      expect(focusSearch.calledWith(true)).to.be.true;
+      expect(panel.searchMode).to.be.false;
+      focusSearch.restore();
+    });
+
+    it('temporarily opens the collapsed panel with Meta+Shift+F', async () => {
+      const panel = oscdShell.shadowRoot!.querySelector(
+        'editor-plugins-panel',
+      ) as EditorPluginsPanel;
+      panel.expanded = false;
+      const focusSearch = sinon.spy(panel, 'focusSearch');
+
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'F',
+          metaKey: true,
+          shiftKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+      await panel.updateComplete;
+
+      expect(panel.searchMode).to.be.true;
+      expect(focusSearch.calledWith(true)).to.be.true;
+      focusSearch.restore();
+    });
+
     it('displays the menu with Ctrl+m', async () => {
       waitUntil(
         () => oscdShell.pluginsMenu !== undefined,
