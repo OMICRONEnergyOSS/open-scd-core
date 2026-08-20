@@ -507,80 +507,87 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
             >search</oscd-icon
           ></oscd-outlined-text-field
         >
-        ${this.searchValue.trim().length === 0
-          ? html`<oscd-tree
-                .data=${this.pinnedTreeNodes}
-                .expandedIds=${this.pinnedExpanded}
-                .selectionMode=${'single'}
-                .selectedIds=${this.selectedEditor
-                  ? [this.selectedEditor.tagName]
-                  : []}
-                .isDisabled=${(node: EditorPluginTreeNode) =>
-                  'kind' in node && node.kind === 'placeholder'}
-                .isSelectable=${(node: EditorPluginTreeNode) =>
-                  !('kind' in node && node.kind === 'placeholder')}
-                class="pinned-tree"
-                ?keyboard-active=${this.focusedTree === 'pinned'}
-                @focusin=${() => this.handleTreeFocus('pinned')}
-                .renderItem=${(
-                  context: TreeRenderContext<EditorPluginTreeNode>,
-                ) => this.renderPluginItem(context)}
-                toggle-position="trailing"
-                collapse-icon="arrow_drop_up"
-                expand-icon="arrow_drop_down"
-                @selected-ids-changed=${(
-                  event: CustomEvent<{ selectedIds: string[] }>,
-                ) =>
-                  this.handleTreeSelection('pinned', event.detail.selectedIds)}
-                @expanded-ids-changed=${(
-                  event: CustomEvent<{ expandedIds: string[] }>,
-                ) => {
-                  this.pinnedExpanded = event.detail.expandedIds;
-                }}
-                @active-changed=${() => this.handleTreeActiveChanged('pinned')}
-                @navigation-boundary=${(
-                  event: CustomEvent<{ direction: 'first' | 'last' }>,
-                ) => this.handleTreeBoundary('pinned', event.detail.direction)}
-              ></oscd-tree>
-              <oscd-divider></oscd-divider>`
-          : nothing}
-        <oscd-tree
-          class="editors-tree"
-          ?keyboard-active=${this.focusedTree === 'editors'}
-          @focusin=${() => this.handleTreeFocus('editors')}
-          .data=${this.editorTreeNodes}
-          .expandedIds=${this.searchValue.length === 0
-            ? this.expandedIds
-            : this.editorTreeNodes.map(node => node.id)}
-          .selectionMode=${'single'}
-          .selectedIds=${this.selectedEditor
-            ? [this.selectedEditor.tagName]
-            : []}
-          .isDisabled=${(node: EditorPluginTreeNode) =>
-            'kind' in node && node.kind === 'placeholder'}
-          .isSelectable=${(node: EditorPluginTreeNode) =>
-            !('kind' in node && node.kind === 'placeholder')}
-          .renderItem=${(context: TreeRenderContext<EditorPluginTreeNode>) =>
-            this.renderPluginItem(context)}
-          .renderLeafAccessory=${(
-            context: TreeRenderContext<EditorPluginTreeNode>,
-          ) => this.renderLeafAccessory(context)}
-          toggle-position="trailing"
-          collapse-icon="arrow_drop_down"
-          expand-icon="arrow_drop_up"
-          @selected-ids-changed=${(
-            event: CustomEvent<{ selectedIds: string[] }>,
-          ) => this.handleTreeSelection('editors', event.detail.selectedIds)}
-          @expanded-ids-changed=${(
-            event: CustomEvent<{ expandedIds: string[] }>,
-          ) => {
-            this.expandedIds = event.detail.expandedIds;
-          }}
-          @active-changed=${() => this.handleTreeActiveChanged('editors')}
-          @navigation-boundary=${(
-            event: CustomEvent<{ direction: 'first' | 'last' }>,
-          ) => this.handleTreeBoundary('editors', event.detail.direction)}
-        ></oscd-tree>
+        <div class="tree-scroll">
+          ${this.searchValue.trim().length === 0
+            ? html`<oscd-tree
+                  .data=${this.pinnedTreeNodes}
+                  .expandedIds=${this.pinnedExpanded}
+                  .selectionMode=${'single'}
+                  .selectedIds=${this.selectedEditor
+                    ? [this.selectedEditor.tagName]
+                    : []}
+                  .isDisabled=${(node: EditorPluginTreeNode) =>
+                    'kind' in node && node.kind === 'placeholder'}
+                  .isSelectable=${(node: EditorPluginTreeNode) =>
+                    !('kind' in node && node.kind === 'placeholder')}
+                  class="pinned-tree"
+                  ?keyboard-active=${this.focusedTree === 'pinned'}
+                  @focusin=${() => this.handleTreeFocus('pinned')}
+                  .renderItem=${(
+                    context: TreeRenderContext<EditorPluginTreeNode>,
+                  ) => this.renderPluginItem(context)}
+                  toggle-position="trailing"
+                  collapse-icon="arrow_drop_up"
+                  expand-icon="arrow_drop_down"
+                  @selected-ids-changed=${(
+                    event: CustomEvent<{ selectedIds: string[] }>,
+                  ) =>
+                    this.handleTreeSelection(
+                      'pinned',
+                      event.detail.selectedIds,
+                    )}
+                  @expanded-ids-changed=${(
+                    event: CustomEvent<{ expandedIds: string[] }>,
+                  ) => {
+                    this.pinnedExpanded = event.detail.expandedIds;
+                  }}
+                  @active-changed=${() =>
+                    this.handleTreeActiveChanged('pinned')}
+                  @navigation-boundary=${(
+                    event: CustomEvent<{ direction: 'first' | 'last' }>,
+                  ) =>
+                    this.handleTreeBoundary('pinned', event.detail.direction)}
+                ></oscd-tree>
+                <oscd-divider></oscd-divider>`
+            : nothing}
+          <oscd-tree
+            class="editors-tree"
+            ?keyboard-active=${this.focusedTree === 'editors'}
+            @focusin=${() => this.handleTreeFocus('editors')}
+            .data=${this.editorTreeNodes}
+            .expandedIds=${this.searchValue.length === 0
+              ? this.expandedIds
+              : this.editorTreeNodes.map(node => node.id)}
+            .selectionMode=${'single'}
+            .selectedIds=${this.selectedEditor
+              ? [this.selectedEditor.tagName]
+              : []}
+            .isDisabled=${(node: EditorPluginTreeNode) =>
+              'kind' in node && node.kind === 'placeholder'}
+            .isSelectable=${(node: EditorPluginTreeNode) =>
+              !('kind' in node && node.kind === 'placeholder')}
+            .renderItem=${(context: TreeRenderContext<EditorPluginTreeNode>) =>
+              this.renderPluginItem(context)}
+            .renderLeafAccessory=${(
+              context: TreeRenderContext<EditorPluginTreeNode>,
+            ) => this.renderLeafAccessory(context)}
+            toggle-position="trailing"
+            collapse-icon="arrow_drop_down"
+            expand-icon="arrow_drop_up"
+            @selected-ids-changed=${(
+              event: CustomEvent<{ selectedIds: string[] }>,
+            ) => this.handleTreeSelection('editors', event.detail.selectedIds)}
+            @expanded-ids-changed=${(
+              event: CustomEvent<{ expandedIds: string[] }>,
+            ) => {
+              this.expandedIds = event.detail.expandedIds;
+            }}
+            @active-changed=${() => this.handleTreeActiveChanged('editors')}
+            @navigation-boundary=${(
+              event: CustomEvent<{ direction: 'first' | 'last' }>,
+            ) => this.handleTreeBoundary('editors', event.detail.direction)}
+          ></oscd-tree>
+        </div>
       </div>
     `;
   }
@@ -710,6 +717,7 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
   render() {
     return html`
       ${this.isOpen ? this.renderExpanded() : this.renderRail()}
+      <oscd-divider class="footer-divider"></oscd-divider>
       ${this.renderFooter()}
     `;
   }
@@ -722,11 +730,13 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
       width: var(--editor-plugins-panel-collapsed-width);
       height: calc(100% - var(--editor-plugins-panel-padding-top));
       display: grid;
-      grid-template-rows: 1fr auto;
+      /* Row 1 (tree-container/rail) is the only scrollable region; the divider
+         and footer rows are sized to content so they stay pinned and always
+         visible below it, however tall the tree content grows. */
+      grid-template-rows: 1fr auto auto;
       min-height: 0;
       padding-top: var(--editor-plugins-panel-padding-top);
       transition: width 0.1s ease-in-out;
-      overflow-y: auto;
       /* Clip transient horizontal overflow while the width animates on
          expand/collapse: the content swaps to its full width before the host
          finishes resizing, and this stops that from forcing horizontal reflow /
@@ -778,6 +788,8 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
       align-items: flex-start;
       padding-inline: 16px;
       min-width: 0;
+      min-height: 0;
+      overflow-y: auto;
     }
 
     .rail-item {
@@ -849,12 +861,18 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
     .tree-container {
       margin-inline: 16px;
       min-width: 0;
+      min-height: 0;
       display: flex;
       flex-direction: column;
-      /* Owns spacing between the panel sections (search, pinned tree, divider,
-         editors tree): 12px per the Figma spec. The divider therefore carries
-         no margin of its own, avoiding compounding gap + margin. */
       gap: 12px;
+    }
+
+    .tree-scroll {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-height: 0;
+      overflow-y: auto;
     }
 
     oscd-tree {
@@ -972,6 +990,11 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
       --md-divider-color: var(--editor-plugins-panel-divider-color);
       /* No margin: .tree-container's 12px gap owns the spacing on both sides. */
       margin-block: 0;
+    }
+
+    .footer-divider {
+      padding-inline: 16px;
+      margin-block: 12px 0;
     }
 
     .footer {
