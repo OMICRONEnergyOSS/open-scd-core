@@ -526,6 +526,9 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
                   .renderItem=${(
                     context: TreeRenderContext<EditorPluginTreeNode>,
                   ) => this.renderPluginItem(context)}
+                  .renderLeafAccessory=${(
+                    context: TreeRenderContext<EditorPluginTreeNode>,
+                  ) => this.renderLeafAccessory(context)}
                   toggle-position="trailing"
                   collapse-icon="arrow_drop_up"
                   expand-icon="arrow_drop_down"
