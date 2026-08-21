@@ -24,9 +24,9 @@ import {
   flattenPluginEntries,
 } from '../utils/plugin-utils.js';
 import { OscdTreeItem } from '@omicronenergy/oscd-ui/tree/OscdTreeItem.js';
-import { OscdOutlinedTextField } from '@omicronenergy/oscd-ui/textfield/OscdOutlinedTextField.js';
 import { OscdDivider } from '@omicronenergy/oscd-ui/divider/OscdDivider.js';
 import { localstorage } from '@omicronenergy/oscd-ui/decorators/localstorage.js';
+import { OscdOutlinedSearchField } from '@omicronenergy/oscd-ui/search-field/OscdOutlinedSearchField.js';
 
 type PlaceholderTreeNode = {
   kind: 'placeholder';
@@ -115,7 +115,7 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
     'oscd-list-item': OscdListItem,
     'oscd-tree': OscdTree,
     'oscd-tree-item': OscdTreeItem,
-    'oscd-outlined-text-field': OscdOutlinedTextField,
+    'oscd-outlined-search-field': OscdOutlinedSearchField,
     'oscd-divider': OscdDivider,
     'oscd-menu': OscdMenu,
     'oscd-menu-item': OscdMenuItem,
@@ -277,12 +277,12 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
   private handleKeydown = (event: KeyboardEvent) => {
     const fromSearchField =
       (event.currentTarget as Element | null)?.localName ===
-        'oscd-outlined-text-field' ||
+        'oscd-outlined-search-field' ||
       event
         .composedPath()
         .some(
           target =>
-            (target as Element).localName === 'oscd-outlined-text-field',
+            (target as Element).localName === 'oscd-outlined-search-field',
         );
     if (event.key === 'Escape' && this.searchMode) {
       event.stopPropagation();
@@ -316,9 +316,10 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
   /** Focuses the search field, optionally selecting its current query. */
   focusSearch(selectQuery = false) {
     const focusField = () => {
-      const searchField = this.shadowRoot?.querySelector<OscdOutlinedTextField>(
-        'oscd-outlined-text-field',
-      );
+      const searchField =
+        this.shadowRoot?.querySelector<OscdOutlinedSearchField>(
+          'oscd-outlined-search-field',
+        );
       searchField?.focus();
       if (selectQuery) {
         searchField?.select();
@@ -425,7 +426,7 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
     if (!this.focusedTree) {
       if (
         this.shadowRoot?.activeElement?.localName ===
-          'oscd-outlined-text-field' &&
+          'oscd-outlined-search-field' &&
         flattenPluginEntries(
           filterBySearchTerm(this.editors, this.searchValue, this.locale),
         ).length === 1
@@ -495,18 +496,14 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
   private renderExpanded() {
     return html`
       <div class="tree-container">
-        <oscd-outlined-text-field
-          label=${msg('Search')}
+        <oscd-outlined-search-field
+          placeholder=${msg('Search')}
+          clearLabel=${msg('Clear search')}
           .value=${this.searchValue}
-          @keydown=${this.handleKeydown}
-          @input=${(event: Event) => {
-            const input = event.target as HTMLInputElement;
-            this.searchValue = input.value;
+          @input=${(event: InputEvent) => {
+            this.searchValue = (event.target as OscdOutlinedSearchField).value;
           }}
-          ><oscd-icon slot="leading-icon"
-            >search</oscd-icon
-          ></oscd-outlined-text-field
-        >
+        ></oscd-outlined-search-field>
         <div class="tree-scroll">
           ${this.searchValue.trim().length === 0
             ? html`<oscd-tree
@@ -782,6 +779,148 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
       width: var(--editor-plugins-panel-width);
     }
 
+    /* Base divider styling, overridden by the more specific rail/flyout/footer
+       dividers below where the Figma spec calls for different sizing. */
+    oscd-divider {
+      --md-divider-color: var(--editor-plugins-panel-divider-color);
+      /* No margin: .tree-container's 12px gap owns the spacing on both sides. */
+      margin-block: 0;
+    }
+
+    /* --- Expanded panel: search field + scrollable tree --- */
+
+    .tree-container {
+      margin-inline: 16px;
+      min-width: 0;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    oscd-outlined-search-field * {
+      --md-icon-button-state-layer-width: 32px;
+      --md-icon-button-state-layer-height: 32px;
+      --md-icon-button-state-layer-shape: 50%;
+    }
+
+    oscd-outlined-search-field {
+      background-color: color-mix(
+        in srgb,
+        var(
+            --md-outlined-text-field-input-text-color,
+            var(--md-sys-color-on-surface, #1d1b20)
+          )
+          20%,
+        transparent
+      );
+      border-radius: 5px;
+      --md-outlined-text-field-top-space: 6px;
+      --md-outlined-text-field-bottom-space: 6px;
+      --md-outlined-text-field-leading-space: 8px;
+      --md-outlined-text-field-trailing-space: 8px;
+      --md-outlined-text-field-with-leading-icon-leading-space: 10px;
+      --md-outlined-field-with-trailing-content-trailing-space: 8px;
+      --md-outlined-text-field-icon-input-space: 10px;
+      --md-icon-button-state-layer-width: 32px;
+      --md-icon-button-state-layer-height: 32px;
+      --md-icon-button-state-layer-shape: 50%;
+
+      --md-outlined-text-field-trailing-icon-size: 32px;
+
+      --md-icon-button-icon-size: 24px;
+
+      /* keep the outline light in every state */
+      --md-outlined-text-field-focus-outline-color: var(
+        --editor-plugins-panel-item-text-color
+      );
+      --md-outlined-text-field-hover-outline-color: var(
+        --editor-plugins-panel-item-text-color
+      );
+      --md-outlined-text-field-outline-color: var(
+        --editor-plugins-panel-item-text-color
+      );
+      /* hide the outline border entirely, in every state */
+      --md-outlined-text-field-outline-width: 0px;
+      --md-outlined-text-field-hover-outline-width: 0px;
+      --md-outlined-text-field-focus-outline-width: 0px;
+
+      /* caret follows the light text instead of the primary accent */
+      --md-outlined-text-field-caret-color: var(
+        --editor-plugins-panel-item-text-color
+      );
+      --md-outlined-text-field-focus-caret-color: var(
+        --editor-plugins-panel-item-text-color
+      );
+    }
+
+    .tree-scroll {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-height: 0;
+      overflow-y: auto;
+
+      /* Recolour the scrollbar to sit on the panel's dark-blue surface instead
+         of the browser's default light-themed bar. Firefox reads
+         scrollbar-color; Chromium/Safari (and Firefox with the layout flag
+         off) read the ::-webkit-scrollbar-* pseudo-elements below. */
+      scrollbar-color: var(--editor-plugins-panel-divider-color) transparent;
+      scrollbar-width: thin;
+    }
+
+    .tree-scroll::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .tree-scroll::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .tree-scroll::-webkit-scrollbar-thumb {
+      background-color: var(--editor-plugins-panel-divider-color);
+      border-radius: 4px;
+    }
+
+    oscd-tree {
+      margin-inline: 0;
+      min-height: 0;
+      --oscd-tree-row-height: 36px;
+      --oscd-tree-item-min-height: 36px;
+      --oscd-tree-row-gap: 4px;
+      --oscd-tree-row-padding-start: 8px;
+      --oscd-tree-row-padding-end: 8px;
+      --oscd-tree-indent-step: 36px;
+      --oscd-tree-row-shape: 5px;
+      --oscd-tree-toggle-icon-size: 28px;
+      --oscd-tree-trailing-toggle-gap: 8px;
+      /* Pin accessory hidden at rest, revealed on row hover / keyboard focus
+         (see Figma side-panel spec); its icon size inherits the 28px toggle. */
+      --oscd-tree-accessory-rest-opacity: 0;
+      --md-icon-size: var(--editor-plugins-panel-item-icon-size);
+      --oscd-tree-row-selected-color: var(
+        --editor-plugins-panel-item-active-bg
+      );
+      --oscd-tree-row-selected-text-color: var(
+        --editor-plugins-panel-item-text-color
+      );
+      --oscd-tree-row-active-border-width: 0px;
+      --oscd-tree-row-active-border-color: var(--oscd-base3, #fff);
+      --oscd-tree-row-active-text-color: var(--oscd-base3, #fff);
+      --oscd-tree-row-focus-ring-color: var(--oscd-base3, #fff);
+    }
+
+    oscd-tree.keyboard-active {
+      --oscd-tree-row-active-border-width: 1px;
+    }
+
+    oscd-tree.pinned-tree {
+      --oscd-tree-leaf-toggle-size: 0px;
+      --oscd-tree-leaf-toggle-gap: 0px;
+    }
+
+    /* --- Collapsed icon rail --- */
+
     /* Collapsed icon rail: a flat column of 44px icon buttons (28px glyph + 8px
        padding), inset 16px so the glyphs land at the same x (24px) as both the
        search icon and the tree-item icons in the expanded panel. */
@@ -861,139 +1000,7 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
       );
     }
 
-    .tree-container {
-      margin-inline: 16px;
-      min-width: 0;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .tree-scroll {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      min-height: 0;
-      overflow-y: auto;
-    }
-
-    oscd-tree {
-      --oscd-tree-row-active-border-width: 0px;
-      --oscd-tree-row-active-border-color: var(--oscd-base3, #fff);
-      --oscd-tree-row-active-text-color: var(--oscd-base3, #fff);
-      --oscd-tree-row-focus-ring-color: var(--oscd-base3, #fff);
-    }
-
-    oscd-tree.keyboard-active {
-      --oscd-tree-row-active-border-width: 1px;
-    }
-
-    oscd-outlined-text-field {
-      border-radius: 5px;
-      background: #6dadee66;
-      --md-outlined-field-top-space: 6px;
-      --md-outlined-field-bottom-space: 6px;
-      /* Match the tree rows: 8px inner padding so the 28px search icon lands at
-         the same x (24px) as the tree-item icons, and the placeholder aligns
-         with the row labels. See .tree-container / oscd-tree geometry. */
-      --md-outlined-field-leading-space: 8px;
-      --md-outlined-field-trailing-space: 8px;
-      --md-outlined-field-with-leading-content-leading-space: 10px;
-      --md-outlined-field-content-space: 10px;
-
-      /* keep the outline light in every state */
-      --md-outlined-text-field-focus-outline-color: var(
-        --editor-plugins-panel-item-text-color
-      );
-      --md-outlined-text-field-hover-outline-color: var(
-        --editor-plugins-panel-item-text-color
-      );
-      --md-outlined-text-field-outline-color: var(
-        --editor-plugins-panel-item-text-color
-      );
-      --md-outlined-text-field-focus-outline-width: 1px;
-
-      /* keep the floating label light in every state */
-      --md-outlined-text-field-label-text-color: var(
-        --editor-plugins-panel-item-text-color
-      );
-      --md-outlined-text-field-hover-label-text-color: var(
-        --editor-plugins-panel-item-text-color
-      );
-      --md-outlined-text-field-focus-label-text-color: var(
-        --editor-plugins-panel-item-text-color
-      );
-      /* caret follows the light text instead of the primary accent */
-      --md-outlined-text-field-caret-color: var(
-        --editor-plugins-panel-item-text-color
-      );
-      --md-outlined-text-field-focus-caret-color: var(
-        --editor-plugins-panel-item-text-color
-      );
-    }
-
-    oscd-outlined-text-field oscd-icon[slot='leading-icon'] {
-      /* Every icon in the side panel is 28px (matches the tree icons). */
-      --md-icon-size: 28px;
-    }
-
-    oscd-tree {
-      /*
-       * Side-panel geometry, driven entirely through oscd-tree's public custom
-       * properties so spacing lives in one place (see the Figma side-panel spec):
-       *   - margin-inline (0): the .tree-container already insets content by
-       *     16px (aligning the search box and the selection band with the
-       *     panel edge), so the tree adds no further inline margin.
-       *   - --oscd-tree-row-padding-start/end (8px): padding inside the band
-       *     before the content, matching the 8px inner padding in the design.
-       *   - --oscd-tree-indent-step (36px): one indent step = leading icon
-       *     (28px) + 8px gap; because a leading icon occupies exactly one step,
-       *     icon-less leaves align their text under their group's label.
-       *   - --oscd-tree-row-gap (4px): vertical gap between rows.
-       *   - --oscd-tree-row-height / --oscd-tree-item-min-height (36px): band
-       *     height; with the 4px row gap this yields a 40px row pitch.
-       *     --oscd-tree-item-min-height overrides the tree-item's Material
-       *     default (--md-list-item-one-line-container-height, 56px); without
-       *     it rows would be 56px tall.
-       *   - --oscd-tree-row-shape (5px): selection-band corner radius.
-       *   - --oscd-tree-toggle-icon-size (28px) / --oscd-tree-trailing-toggle-gap
-       *     (8px): chevron glyph size and its gap from the label. Every icon in
-       *     the design is 28px; the pin accessory inherits this size.
-       */
-      margin-inline: 0;
-      min-height: 0;
-      --oscd-tree-row-height: 36px;
-      --oscd-tree-item-min-height: 36px;
-      --oscd-tree-row-gap: 4px;
-      --oscd-tree-row-padding-start: 8px;
-      --oscd-tree-row-padding-end: 8px;
-      --oscd-tree-indent-step: 36px;
-      --oscd-tree-row-shape: 5px;
-      --oscd-tree-toggle-icon-size: 28px;
-      --oscd-tree-trailing-toggle-gap: 8px;
-      /* Pin accessory hidden at rest, revealed on row hover / keyboard focus
-         (see Figma side-panel spec); its icon size inherits the 28px toggle. */
-      --oscd-tree-accessory-rest-opacity: 0;
-      --md-icon-size: var(--editor-plugins-panel-item-icon-size);
-      --oscd-tree-row-selected-color: var(
-        --editor-plugins-panel-item-active-bg
-      );
-      --oscd-tree-row-selected-text-color: var(
-        --editor-plugins-panel-item-text-color
-      );
-    }
-
-    oscd-tree.pinned-tree {
-      --oscd-tree-leaf-toggle-size: 0px;
-      --oscd-tree-leaf-toggle-gap: 0px;
-    }
-
-    oscd-divider {
-      --md-divider-color: var(--editor-plugins-panel-divider-color);
-      /* No margin: .tree-container's 12px gap owns the spacing on both sides. */
-      margin-block: 0;
-    }
+    /* --- Footer: collapse/expand toggle --- */
 
     .footer-divider {
       padding-inline: 16px;

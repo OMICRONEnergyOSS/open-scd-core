@@ -57,7 +57,7 @@
     "@omicronenergy/oscd-menu-open": "^0.0.6",
     "@omicronenergy/oscd-menu-save": "^0.0.2",
     "@omicronenergy/oscd-test-utils": "^0.0.11",
-    "@omicronenergy/oscd-ui": "^0.0.17",
+    "@omicronenergy/oscd-ui": "^0.0.18",
     "@open-wc/scoped-elements": "^3.0.6",
     "@openscd/oscd-api": "^0.1.6",
     "@openscd/oscd-editor": "^1.8.0",
