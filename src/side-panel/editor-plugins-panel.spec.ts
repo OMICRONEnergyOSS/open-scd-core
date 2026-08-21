@@ -8,7 +8,7 @@ import { sampleEditorPlugins } from '../utils/testing/plugin-helpers.js';
 import { TestMenuPlugin1 } from '../utils/testing/test-plugins.js';
 import type { OscdMenu } from '@omicronenergy/oscd-ui/menu/OscdMenu.js';
 import type { OscdTree } from '@omicronenergy/oscd-ui/tree/OscdTree.js';
-import { OscdOutlinedTextField } from '@omicronenergy/oscd-ui/textfield/OscdOutlinedTextField.js';
+import { OscdOutlinedSearchField } from '@omicronenergy/oscd-ui/search-field/OscdOutlinedSearchField.js';
 import sinon from 'sinon';
 
 // A grouped editor fixture, used to exercise the collapsed rail's group
@@ -203,10 +203,13 @@ describe('editor-plugins-panel', () => {
     });
   });
 
+  const getSearchField = () =>
+    editorPluginsPanel.shadowRoot!.querySelector(
+      'oscd-outlined-search-field',
+    ) as OscdOutlinedSearchField;
+
   const setSearch = async (value: string) => {
-    const field = editorPluginsPanel.shadowRoot!.querySelector(
-      'oscd-outlined-text-field',
-    ) as unknown as HTMLInputElement;
+    const field = getSearchField();
     field.value = value;
     field.dispatchEvent(new Event('input'));
     await editorPluginsPanel.updateComplete;
@@ -231,9 +234,7 @@ describe('editor-plugins-panel', () => {
   });
 
   it('highlights editor nodes with arrow navigation without selecting them', async () => {
-    const field = editorPluginsPanel.shadowRoot!.querySelector(
-      'oscd-outlined-text-field',
-    )!;
+    const field = getSearchField();
     field.dispatchEvent(
       new KeyboardEvent('keydown', {
         key: 'ArrowDown',
@@ -253,9 +254,7 @@ describe('editor-plugins-panel', () => {
 
   it('preserves the search query when the field is refocused', async () => {
     await setSearch('Plugin 2');
-    const field = editorPluginsPanel.shadowRoot!.querySelector(
-      'oscd-outlined-text-field',
-    ) as OscdOutlinedTextField;
+    const field = getSearchField();
 
     editorPluginsPanel.focusSearch();
     await editorPluginsPanel.updateComplete;
@@ -266,9 +265,7 @@ describe('editor-plugins-panel', () => {
 
   it('hands search-field arrow navigation to the editor tree when searching', async () => {
     await setSearch('Plugin');
-    const field = editorPluginsPanel.shadowRoot!.querySelector(
-      'oscd-outlined-text-field',
-    )!;
+    const field = getSearchField();
     field.dispatchEvent(
       new KeyboardEvent('keydown', {
         key: 'ArrowDown',
@@ -287,9 +284,7 @@ describe('editor-plugins-panel', () => {
 
   it('starts search navigation at the last editor for ArrowUp', async () => {
     await setSearch('Plugin');
-    const field = editorPluginsPanel.shadowRoot!.querySelector(
-      'oscd-outlined-text-field',
-    )!;
+    const field = getSearchField();
     field.dispatchEvent(
       new KeyboardEvent('keydown', {
         key: 'ArrowUp',
@@ -307,9 +302,7 @@ describe('editor-plugins-panel', () => {
 
   it('selects the only search result when Enter is pressed in the search field', async () => {
     await setSearch('Plugin 2');
-    const field = editorPluginsPanel.shadowRoot!.querySelector(
-      'oscd-outlined-text-field',
-    ) as OscdOutlinedTextField;
+    const field = getSearchField();
     let selected: PluginEntry | undefined;
     editorPluginsPanel.addEventListener('editor-select', (event: Event) => {
       selected = (event as CustomEvent).detail.editor;
@@ -329,9 +322,7 @@ describe('editor-plugins-panel', () => {
 
   it('does nothing on search-field Enter when multiple results remain', async () => {
     await setSearch('Plugin');
-    const field = editorPluginsPanel.shadowRoot!.querySelector(
-      'oscd-outlined-text-field',
-    ) as OscdOutlinedTextField;
+    const field = getSearchField();
     let selected = false;
     editorPluginsPanel.addEventListener('editor-select', () => {
       selected = true;
@@ -536,7 +527,7 @@ describe('editor-plugins-panel', () => {
 
     it('focuses the search field on entering search mode', async () => {
       await collapse(editorPluginsPanel);
-      const focusSpy = sinon.spy(OscdOutlinedTextField.prototype, 'focus');
+      const focusSpy = sinon.spy(OscdOutlinedSearchField.prototype, 'focus');
 
       findRailSearchButton(editorPluginsPanel).click();
       await editorPluginsPanel.updateComplete;
