@@ -50,14 +50,16 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@compas-bearingpoint/plugins": "file:../compas-bearingpoint-plugins",
     "@lit/localize": "^0.12.2",
     "@omicronenergy/oscd-background-editv1": "^0.0.7",
+    "@omicronenergy/oscd-background-plugin-config": "file:../../OmicronEnergyOSS/oscd-background-plugin-config",
     "@omicronenergy/oscd-editor-source": "^0.0.5",
     "@omicronenergy/oscd-menu-commons": "^0.0.1",
     "@omicronenergy/oscd-menu-open": "^0.0.6",
     "@omicronenergy/oscd-menu-save": "^0.0.2",
     "@omicronenergy/oscd-test-utils": "^0.0.11",
-    "@omicronenergy/oscd-ui": "^0.0.18",
+    "@omicronenergy/oscd-ui": "^0.0.19",
     "@open-wc/scoped-elements": "^3.0.6",
     "@openscd/oscd-api": "^0.1.6",
     "@openscd/oscd-editor": "^1.8.0",

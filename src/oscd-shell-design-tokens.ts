@@ -11,18 +11,28 @@ import { css } from 'lit';
  * internal base tokens (e.g. --oscd-base*).
  */
 export const oscdShellDesignTokens = css`
-  /* Internal base theme tokens and defaults */
+  /* Internal base theme tokens and defaults.
+   *
+   * Defaults are the Solarized (https://ethanschoonover.com/solarized/)
+   * light palette used by the legacy OpenSCD shell, so oscd-shell is
+   * brand-neutral out of the box: consumers who set none of the
+   * --oscd-theme-* variables get the classic OpenSCD look. Distro-specific
+   * branding (e.g. Omicron colors) is applied entirely by overriding the
+   * --oscd-theme-* variables from outside; nothing brand-specific belongs
+   * in this file.
+   */
+  :host,
   * {
-    --oscd-primary: var(--oscd-theme-primary, #0b335b);
-    --oscd-secondary: var(--oscd-theme-secondary, #2485e5);
-    --oscd-base03: var(--oscd-theme-base03, #121417);
-    --oscd-base02: var(--oscd-theme-base02, #1a1e23);
-    --oscd-base01: var(--oscd-theme-base01, #3d4651);
-    --oscd-base00: var(--oscd-theme-base00, #46505d);
-    --oscd-base0: var(--oscd-theme-base0, #8b97a7);
-    --oscd-base1: var(--oscd-theme-base1, #96a1b0);
-    --oscd-base2: var(--oscd-theme-base2, #f3f5f6);
-    --oscd-base3: var(--oscd-theme-base3, white);
+    --oscd-primary: var(--oscd-theme-primary, #2aa198);
+    --oscd-secondary: var(--oscd-theme-secondary, #6c71c4);
+    --oscd-base03: var(--oscd-theme-base03, #002b36);
+    --oscd-base02: var(--oscd-theme-base02, #073642);
+    --oscd-base01: var(--oscd-theme-base01, #586e75);
+    --oscd-base00: var(--oscd-theme-base00, #657b83);
+    --oscd-base0: var(--oscd-theme-base0, #839496);
+    --oscd-base1: var(--oscd-theme-base1, #93a1a1);
+    --oscd-base2: var(--oscd-theme-base2, #eee8d5);
+    --oscd-base3: var(--oscd-theme-base3, #fdf6e3);
     --oscd-error: var(--oscd-theme-error, #dc322f);
     --oscd-warning: var(--oscd-theme-warning, #b58900);
     --oscd-text-font: var(--oscd-theme-text-font, 'Roboto');
@@ -50,6 +60,14 @@ export const oscdShellDesignTokens = css`
     --md-icon-button-disabled-icon-color: var(--oscd-base3);
     /* --md-menu-item-selected-label-text-color: var(--oscd-base01); */
     --md-icon-button-disabled-icon-color: var(--oscd-base3);
+
+    /* MD3 has no single generic "system font" token (unlike color); its
+     * closest reference-tier equivalent is --md-ref-typeface-plain. Icon
+     * fonts (--oscd-icon-font) and monospace fonts (--oscd-text-font-mono)
+     * have no MD3 system-token equivalent at all, so they are referenced
+     * directly where needed instead of through an --md-* mapping.
+     */
+    --md-ref-typeface-plain: var(--oscd-text-font);
 
     /* MDC Theme Colors
      * Needed for supporting any pluggins still using the depricated MWC Components
@@ -87,6 +105,7 @@ export const oscdShellDesignTokens = css`
     --mdc-theme-text-disabled-on-light: rgba(255, 255, 255, 0.38);
   }
 
+  :host,
   * {
     --app-bar-height: 54px;
 
@@ -105,12 +124,22 @@ export const oscdShellDesignTokens = css`
    * Example pattern:
    * --internal-variable-name: var(--oscd-shell-public-token, <default>);
    */
+  :host,
   * {
+    /* Shell root */
+    --shell-background-color: var(
+      --oscd-shell-background-color,
+      var(--md-sys-color-surface)
+    );
+
     /* App bar */
-    --app-bar-color: var(--oscd-shell-app-bar-color, var(--oscd-base3));
+    --app-bar-color: var(
+      --oscd-shell-app-bar-color,
+      var(--md-sys-color-on-primary)
+    );
     --app-bar-background-color: var(
       --oscd-shell-app-bar-background-color,
-      var(--oscd-primary)
+      var(--md-sys-color-primary)
     );
     --app-bar-height: var(--oscd-shell-app-bar-height, 54px);
     --app-bar-small-height: var(--oscd-shell-app-bar-small-height, 48px);
@@ -122,7 +151,7 @@ export const oscdShellDesignTokens = css`
     --app-bar-app-icon-width: var(--oscd-shell-app-bar-icon-width, auto);
     --app-bar-title-text-font-family: var(
       --oscd-shell-app-bar-title-font-family,
-      var(--oscd-text-font)
+      var(--md-ref-typeface-plain)
     );
     --app-bar-title-text-color: var(
       --oscd-shell-app-bar-title-color,
@@ -150,7 +179,7 @@ export const oscdShellDesignTokens = css`
     );
     --app-bar-current-editor-font-family: var(
       --oscd-shell-app-bar-current-editor-font-family,
-      var(--oscd-text-font)
+      var(--md-ref-typeface-plain)
     );
     --app-bar-current-editor-font-size: var(
       --oscd-shell-app-bar-current-editor-font-size,
@@ -178,7 +207,7 @@ export const oscdShellDesignTokens = css`
     );
     --app-bar-action-icon-color: var(
       --oscd-shell-app-bar-action-icon-color,
-      var(--oscd-base3)
+      var(--md-sys-color-on-primary)
     );
 
     /* Bridge to oscd-ui app bar tokens */
@@ -193,13 +222,13 @@ export const oscdShellDesignTokens = css`
     /* Files menu */
     --file-menu-text-font-family: var(
       --oscd-shell-file-menu-text-font-family,
-      var(--oscd-text-font)
+      var(--md-ref-typeface-plain)
     );
     --file-menu-text-size: var(--oscd-shell-file-menu-text-size, 16px);
     --file-menu-text-weight: var(--oscd-shell-file-menu-text-weight, 500);
     --file-menu-text-color: var(
       --oscd-shell-file-menu-text-color,
-      var(--oscd-base3)
+      var(--md-sys-color-on-primary)
     );
 
     /* Plugins menu */
@@ -209,29 +238,29 @@ export const oscdShellDesignTokens = css`
     );
     --plugins-menu-button-color: var(
       --oscd-shell-plugins-menu-button-color,
-      var(--oscd-base3)
+      var(--md-sys-color-on-primary)
     );
     --plugins-menu-min-width: var(--oscd-shell-plugins-menu-min-width, 350px);
     --plugins-menu-padding: var(--oscd-shell-plugins-menu-padding, 12px);
     --plugins-menu-container-color: var(
       --oscd-shell-plugins-menu-container-color,
-      var(--oscd-base3)
+      var(--md-sys-color-surface)
     );
     --plugins-menu-item-label-color: var(
       --oscd-shell-plugins-menu-item-label-color,
-      var(--oscd-base00)
+      var(--md-sys-color-on-surface)
     );
     --plugins-menu-item-leading-icon-color: var(
       --oscd-shell-plugins-menu-item-leading-icon-color,
-      var(--oscd-base00)
+      var(--md-sys-color-on-surface)
     );
     --plugins-menu-item-selected-container-color: var(
       --oscd-shell-plugins-menu-item-selected-container-color,
-      var(--oscd-base2)
+      var(--md-sys-color-secondary-container)
     );
     --plugins-menu-item-selected-label-color: var(
       --oscd-shell-plugins-menu-item-selected-label-color,
-      var(--oscd-base00)
+      var(--md-sys-color-on-surface)
     );
 
     /* Editor plugins panel */
@@ -251,17 +280,25 @@ export const oscdShellDesignTokens = css`
       --oscd-shell-editor-plugins-panel-item-icon-size,
       28px
     );
+    --editor-plugins-panel-background-color: var(
+      --oscd-shell-editor-plugins-panel-background-color,
+      var(--md-sys-color-surface)
+    );
     --editor-plugins-panel-item-text-color: var(
       --oscd-shell-editor-plugins-panel-item-text-color,
-      var(--oscd-base3)
+      var(--md-sys-color-on-surface)
     );
     --editor-plugins-panel-item-icon-color: var(
       --oscd-shell-editor-plugins-panel-item-icon-color,
-      var(--oscd-base3)
+      var(--md-sys-color-on-surface)
     );
     --editor-plugins-panel-item-active-bg: var(
       --oscd-shell-editor-plugins-panel-item-active-bg,
-      var(--oscd-primary)
+      var(--md-sys-color-primary)
+    );
+    --editor-plugins-panel-item-active-color: var(
+      --oscd-shell-editor-plugins-panel-item-active-color,
+      var(--md-sys-color-on-primary)
     );
     --editor-plugins-panel-divider-color: var(
       --oscd-shell-editor-plugins-panel-divider-color,
@@ -269,24 +306,28 @@ export const oscdShellDesignTokens = css`
     );
     --editor-plugins-panel-flyout-header-text-color: var(
       --oscd-shell-editor-plugins-panel-flyout-header-text-color,
-      var(--oscd-secondary)
+      var(--md-sys-color-secondary)
     );
 
     /* Main editor container */
     --editor-background-color: var(
       --oscd-shell-editor-background-color,
-      var(--oscd-base3)
+      var(--md-sys-color-surface)
     );
     --editor-padding: var(--oscd-shell-editor-padding, 8px);
 
     /* Landing page */
+    --landing-background-color: var(
+      --oscd-shell-landing-background-color,
+      var(--md-sys-color-surface)
+    );
     --landing-heading-color: var(
       --oscd-shell-landing-heading-color,
-      var(--oscd-base3)
+      var(--md-sys-color-on-surface)
     );
     --landing-heading-font-family: var(
       --oscd-shell-landing-heading-font-family,
-      var(--oscd-text-font)
+      var(--md-ref-typeface-plain)
     );
     --landing-heading-size: var(--oscd-shell-landing-heading-size, 50px);
     --landing-heading-style: var(--oscd-shell-landing-heading-style, normal);
@@ -298,11 +339,11 @@ export const oscdShellDesignTokens = css`
 
     --landing-subheading-color: var(
       --oscd-shell-landing-subheading-color,
-      var(--oscd-base3)
+      var(--md-sys-color-on-surface)
     );
     --landing-subheading-font-family: var(
       --oscd-shell-landing-subheading-font-family,
-      var(--oscd-text-font)
+      var(--md-ref-typeface-plain)
     );
     --landing-subheading-size: var(
       --oscd-shell-landing-subheading-size,
@@ -326,17 +367,17 @@ export const oscdShellDesignTokens = css`
     --landing-card-height: var(--oscd-shell-landing-card-height, 180px);
     --landing-card-background: var(
       --oscd-shell-landing-card-background,
-      var(--oscd-primary)
+      var(--md-sys-color-secondary)
     );
     --landing-card-text-color: var(
       --oscd-shell-landing-card-text-color,
-      var(--oscd-base3)
+      var(--md-sys-color-on-secondary)
     );
     --landing-card-radius: var(--oscd-shell-landing-card-radius, 2px);
     --landing-card-icon-size: var(--oscd-shell-landing-card-icon-size, 54px);
     --landing-card-corner-accent: var(
       --oscd-shell-landing-card-corner-accent,
-      var(--omicron-yellow)
+      transparent
     );
   }
 `;

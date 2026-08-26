@@ -743,23 +743,26 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
          scrollbar churn every animation frame. Steady-state label overrun is
          handled by the tree row ellipsis, not by this. */
       overflow-x: hidden;
+      /* The panel paints its own surface color; it must never depend on
+         page/body background showing through, or hosts that don't set a
+         background image get a blank panel. */
+      background-color: var(--editor-plugins-panel-background-color);
     }
 
-    /* Material colour scheme for the panel's content. The panel is transparent
-       over the shell's dark-blue background, so its content is light ("white")
-       on a dark surface. We set the *system* colours once here — not each
-       component's final colour — so resting text/icons AND every derived
-       hover/pressed state layer resolve to the light content colour from one
-       place. (The flyout menus are a light surface and reset these back to the
-       shell defaults; see .rail-flyout.)
+    /* Material colour scheme for the panel's content. By default the panel's
+       background-color (above) is the dark --oscd-primary surface, so its
+       content is light ("white"/--oscd-base3) on a dark surface. We set the
+       *system* colours once here — not each component's final colour — so
+       resting text/icons AND every derived hover/pressed state layer resolve
+       to the light content colour from one place. (The flyout menus are a
+       light surface and reset these back to the shell defaults; see
+       .rail-flyout.)
 
        NB: these are set on the content containers rather than :host on purpose —
        the shell sets a universal rule (* { --md-sys-color-on-surface: ... }),
        which targets the panel host from the outer tree and beats a :host
        declaration. That universal rule cannot cross into this shadow tree, so
-       declaring on the containers reliably wins for all descendants. (See the
-       "transparent panel" tech-debt item; a proper panel surface will make this
-       cleaner.) */
+       declaring on the containers reliably wins for all descendants. */
     .rail,
     .tree-container,
     .footer {
@@ -768,10 +771,7 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
         --editor-plugins-panel-item-icon-color
       );
 
-      --md-sys-color-surface: var(
-        --editor-plugins-panel-item-background-color,
-        gray
-      );
+      --md-sys-color-surface: var(--editor-plugins-panel-background-color);
     }
 
     :host([expanded]),
@@ -898,16 +898,31 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
          (see Figma side-panel spec); its icon size inherits the 28px toggle. */
       --oscd-tree-accessory-rest-opacity: 0;
       --md-icon-size: var(--editor-plugins-panel-item-icon-size);
+      /* oscd-tree-item colours its leading/trailing icon slots explicitly
+         (not via inherited 'color'), so — unlike the label — they don't
+         automatically pick up the selected-row text colour above. Tying them
+         to currentColor makes the icon track whatever colour the row itself
+         resolves to (resting on-surface ink, or the active/selected colour),
+         matching the label in both states. */
+      --oscd-tree-item-leading-icon-color: currentColor;
+      --oscd-tree-item-trailing-icon-color: currentColor;
       --oscd-tree-row-selected-color: var(
         --editor-plugins-panel-item-active-bg
       );
       --oscd-tree-row-selected-text-color: var(
-        --editor-plugins-panel-item-text-color
+        --editor-plugins-panel-item-active-color
       );
       --oscd-tree-row-active-border-width: 0px;
-      --oscd-tree-row-active-border-color: var(--oscd-base3, #fff);
-      --oscd-tree-row-active-text-color: var(--oscd-base3, #fff);
-      --oscd-tree-row-focus-ring-color: var(--oscd-base3, #fff);
+      /* The keyboard-active row highlight (outline + optional text override)
+         must stay visible whether that row is merely keyboard-highlighted at
+         rest (panel surface bg, on-surface ink text) or also selected
+         (--editor-plugins-panel-item-active-bg, active-color text). Using
+         currentColor/inherit ties the outline and text to whichever of those
+         two colours the row already resolves to, instead of hardcoding the
+         selected-row colour (which vanishes against the resting surface). */
+      --oscd-tree-row-active-border-color: currentColor;
+      --oscd-tree-row-active-text-color: inherit;
+      --oscd-tree-row-focus-ring-color: currentColor;
     }
 
     oscd-tree.keyboard-active {

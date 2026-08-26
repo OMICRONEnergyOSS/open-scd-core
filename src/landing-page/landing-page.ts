@@ -68,9 +68,10 @@ export class LandingPage extends ScopedElementsMixin(LitElement) {
   }
 
   static styles = css`
-    .host {
+    :host {
+      background-color: var(--landing-background-color);
       display: flex;
-      flex-direction: row;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
       gap: 8px;
