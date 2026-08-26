@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
   <head>
-    <title>OpenSCD Shell Demo</title>
+    <title>OpenSCD Shell Demo (Branded)</title>
     <link
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300&family=Roboto:wght@300;400;500&display=swap"
@@ -10,7 +10,9 @@
       rel="stylesheet"
       href="https://fonts.googleapis.com/css?family=Material+Symbols+Outlined&display=block"
     />
-    <link rel="stylesheet" href="./theming.css" />
+
+    <link rel="stylesheet" href="./branded-colors.css" />
+    <link rel="stylesheet" href="./branded-theming.css" />
   </head>
   <body>
     <oscd-shell locale="en"> </oscd-shell>
@@ -19,7 +21,7 @@
       // To safeguard, we await the polyfill first, then load the rest.
       await import('@webcomponents/scoped-custom-element-registry');
       await import('../dist/oscd-shell.js');
-      await import('./index.js');
+      await import('./branded.js');
     </script>
   </body>
 </html>

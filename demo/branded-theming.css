@@ -1,0 +1,45 @@
+* {
+  --oscd-theme-primary: var(--french-blue-15);
+  --oscd-theme-secondary: var(--french-blue-55);
+  --oscd-theme-base03: var(--slate-0);
+  --oscd-theme-base02: var(--slate-5);
+  --oscd-theme-base01: var(--slate-25);
+  --oscd-theme-base00: var(--slate-30);
+  --oscd-theme-base0: var(--slate-65);
+  --oscd-theme-base1: var(--slate-70);
+  --oscd-theme-base2: var(--slate-110);
+  --oscd-theme-base3: white;
+  --oscd-theme-error: #dc322f;
+  --oscd-theme-text-font: 'Roboto';
+  --oscd-theme-icon-font: 'Material Symbols Outlined';
+  --oscd-theme-text-font-mono: 'Roboto Mono';
+  --oscd-theme-warning: #b58900;
+
+  margin: 0px;
+  padding: 0px;
+
+  /* This distro paints its own branded body background (below) and wants it
+     to shine through the side panel, so the panel's own background is
+     deliberately turned off here. Its foreground colors are set explicitly
+     to match the dark body art — they are no longer implied defaults. */
+  --oscd-shell-editor-plugins-panel-background-color: transparent;
+  --oscd-shell-editor-plugins-panel-item-text-color: white;
+  --oscd-shell-editor-plugins-panel-item-icon-color: white;
+}
+
+abbr {
+  text-decoration: none;
+  border-bottom: none;
+}
+
+html,
+body {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+}
+
+body {
+  background: url('./background.svg') no-repeat center center fixed;
+  background-size: cover;
+}

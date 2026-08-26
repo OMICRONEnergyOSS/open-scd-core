@@ -427,11 +427,13 @@ export class OscdShell extends ScopedElementsMixin(LitElement) {
   render() {
     const hasCustomLandingPage = !!this._landingPageNodes?.length;
     if (this.editableDocs.length === 0) {
-      return html` <slot
-          name="landing-page"
-          @slotchange=${() => this.requestUpdate()}
-        ></slot>
-        ${!hasCustomLandingPage ? this.renderDefaultLandingPage() : nothing}
+      return html` <div class="landing-page-container">
+          <slot
+            name="landing-page"
+            @slotchange=${() => this.requestUpdate()}
+          ></slot>
+          ${!hasCustomLandingPage ? this.renderDefaultLandingPage() : nothing}
+        </div>
         ${this.renderOffScreenPlugins()}`;
     }
 
@@ -532,6 +534,18 @@ export class OscdShell extends ScopedElementsMixin(LitElement) {
         grid-template-areas:
           'header'
           'main';
+        background-color: var(--shell-background-color);
+      }
+
+      .landing-page-container {
+        grid-column: 1 / -1;
+        grid-row: 1 / -1;
+        height: 100%;
+        overflow: auto;
+      }
+
+      .landing-page-container ::slotted(*) {
+        height: 100%;
       }
 
       oscd-app-bar {

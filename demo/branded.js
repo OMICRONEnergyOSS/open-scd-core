@@ -48,7 +48,7 @@ const plugins = {
           translations: { de: 'Datei schließen' },
           icon: 'close',
           requireDoc: true,
-          tagName: 'oscd-menu-file-close',
+          tagName: 'oscd-menu-open',
         },
       ],
     },
@@ -222,15 +222,15 @@ for (const [name, value] of params) {
   oscdShell.setAttribute(name, value);
 }
 
-// const sclDocString = await fetch('sample.scd').then(r => r.text());
+const sclDocString = await fetch('sample.scd').then(r => r.text());
 // const sclDocString = `<?xml version="1.0" encoding="UTF-8"?>
 //   <SCL version="2007" revision="B" xmlns="http://www.iec.ch/61850/2003/SCL">
 //   <Substation name="A1" desc="test substation"></Substation>
 // </SCL>`;
-// oscdShell.docs = {
-//   ['sample.scd']: new DOMParser().parseFromString(
-//     sclDocString,
-//     'application/xml',
-//   ),
-// };
-// oscdShell.docName = 'sample.scd';
+oscdShell.docs = {
+  ['sample.scd']: new DOMParser().parseFromString(
+    sclDocString,
+    'application/xml',
+  ),
+};
+oscdShell.docName = 'sample.scd';
