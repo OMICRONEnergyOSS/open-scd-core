@@ -1,6 +1,6 @@
 {
   "name": "@omicronenergy/oscd-shell",
-  "version": "0.0.13",
+  "version": "0.0.14",
   "description": "The shell component of OpenSCD, where plugins are loaded and the application is initialized.",
   "repository": {
     "type": "git",
