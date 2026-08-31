@@ -571,8 +571,8 @@ export class OscdShell extends ScopedElementsMixin(LitElement) {
       oscd-divider.vertical {
         width: 1px;
         height: 32px;
-        --md-divider-color: var(--app-bar-separator-color, currentColor);
-        opacity: var(--app-bar-separator-opacity, 0.38);
+        --md-divider-color: var(--app-bar-separator-color);
+        opacity: var(--app-bar-separator-opacity);
       }
 
       [slot='alignEnd'] {
@@ -585,18 +585,19 @@ export class OscdShell extends ScopedElementsMixin(LitElement) {
         margin: 0 8px;
       }
 
-      oscd-app-bar * {
-        --md-filled-icon-button-disabled-container-opacity: var(
-          --app-bar-action-icon-disabled-container-opacity,
-          0
-        );
-        --md-filled-icon-button-disabled-icon-color: var(
-          --app-bar-action-icon-disabled-color,
-          var(--md-sys-color-on-primary)
-        );
-        --md-filled-icon-button-icon-size: var(--app-bar-action-icon-size);
-        --md-filled-icon-button-icon-color: var(--app-bar-action-icon-color);
+      [slot='alignEnd'] oscd-filled-icon-button {
+        /* Local colour scheme: setting the system colour once lets the icon
+           colour and every derived state layer follow from one declaration.
+           Safe because the token mapping block is declared only on :host, so
+           --app-bar-action-icon-color is inherited here, not re-declared. */
         --md-sys-color-on-primary: var(--app-bar-action-icon-color);
+        --md-filled-icon-button-icon-size: var(--app-bar-action-icon-size);
+        --md-filled-icon-button-disabled-icon-color: var(
+          --app-bar-action-icon-disabled-color
+        );
+        --md-filled-icon-button-disabled-container-opacity: var(
+          --app-bar-action-icon-disabled-container-opacity
+        );
       }
 
       main {

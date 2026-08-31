@@ -92,6 +92,8 @@ export class FilesMenu extends ScopedElementsMixin(LitElement) {
       --md-text-button-label-text-weight: var(--file-menu-text-weight);
       --md-text-button-label-text-size: var(--file-menu-text-size);
       --md-text-button-label-text-style: normal;
+      /* Local colour scheme: the text button derives its label, icon and
+         state-layer colours from the system primary colour. */
       --md-sys-color-primary: var(--file-menu-text-color);
       --md-text-button-icon-size: 24px;
       display: inline;

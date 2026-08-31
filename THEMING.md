@@ -77,6 +77,65 @@ there is no `--md-*` equivalent for those. `--oscd-icon-font` and
 `--oscd-text-font-mono` are referenced directly (unmapped) wherever a shell
 token needs them.
 
+### The mapping block is declared on `:host` only
+
+`oscd-shell-design-tokens.ts` declares every token **once, on `:host`**, and
+lets normal CSS inheritance carry it down. It must never be widened to
+`:host, *`: a universal selector *re-declares* each token on every element in
+the shell's shadow root, and that is what makes a local override a
+self-reference (see below).
+
+### Re-theming a component: set the system colour, not every component token
+
+Because MD3 component tokens all fall back to the `--md-sys-color-*` layer, the
+concise way to re-theme a component or a subtree is to set the system colour on
+it. Resting colours *and* every derived hover/focus/pressed state layer then
+follow from one declaration:
+
+```css
+/* Preferred: one declaration re-themes the whole button, state layers included */
+[slot='alignEnd'] oscd-filled-icon-button {
+  --md-sys-color-on-primary: var(--app-bar-action-icon-color);
+}
+```
+
+Enumerating `--md-filled-icon-button-{icon,hover-icon,focus-icon,pressed-icon}-color`
+by hand achieves the same thing far more verbosely, and silently drops any
+state layer you forget.
+
+**The one rule that makes this safe:** never assign a system token on the *same
+element* that also declares the shell token you are reading from. Shell tokens
+are derived from the MD3 layer, so with both declarations on one element the two
+reference each other:
+
+```css
+/* WRONG, if this element also carries the mapping block.
+   --app-bar-action-icon-color is defined as
+   var(--oscd-shell-app-bar-action-icon-color, var(--md-sys-color-on-primary)) */
+:host {
+  --md-sys-color-on-primary: var(--app-bar-action-icon-color);
+}
+```
+
+Per CSS Custom Properties a cycle resolves to the guaranteed-invalid value:
+both tokens go empty on that element *and everything below it*, and the
+downstream `var(--md-sys-color-primary, #6750a4)` fallbacks inside Material
+components resurface as stock Material purple.
+
+In practice this means: apply the override to the elements you are styling
+(`[slot='alignEnd'] oscd-filled-icon-button`, `.rail`, `.tree-container`), not
+to the `:host` that carries the token mappings. Keeping the selector tight also
+avoids collateral damage — a broad `oscd-app-bar *` applies the declaration to
+every element in the subtree.
+
+### Every token is declared once, in the token file
+
+Internal tokens must be declared in `oscd-shell-design-tokens.ts` as
+`--internal: var(--oscd-shell-public, <default>)` and documented in the tables
+below. Do not invent a token inline in a component with an ad-hoc fallback
+(`var(--app-bar-separator-color, currentColor)`): the fallback becomes an
+undocumented second source of truth that no distro can discover or override.
+
 ## Shell Root
 
 | Variable                        | Default                  | Affects                                                          |
@@ -94,6 +153,8 @@ token needs them.
 | `--oscd-shell-app-bar-elevation`                  | `--md-sys-elevation-level-2`                      | App bar elevation          |
 | `--oscd-shell-app-bar-icon-height`                | `34.4px`                                          | App logo height            |
 | `--oscd-shell-app-bar-icon-width`                 | `auto`                                            | App logo width             |
+| `--oscd-shell-app-bar-logo-gap`                   | `16px`                                            | Space between app logo and title |
+| `--oscd-shell-app-bar-title-menu-gap`             | `4px`                                             | Space between title and plugins menu button |
 | `--oscd-shell-app-bar-title-font-family`          | `--md-ref-typeface-plain`                         | App title font family      |
 | `--oscd-shell-app-bar-title-color`                | `--app-bar-color` (→ `--md-sys-color-on-primary`) | App title color            |
 | `--oscd-shell-app-bar-title-font-size`            | `22.114px`                                        | App title size             |
@@ -109,6 +170,10 @@ token needs them.
 | `--oscd-shell-app-bar-current-editor-color`       | `--app-bar-color` (→ `--md-sys-color-on-primary`) | Current editor text color  |
 | `--oscd-shell-app-bar-action-icon-size`           | `24px`                                            | Undo/redo icon size        |
 | `--oscd-shell-app-bar-action-icon-color`          | `--md-sys-color-on-primary`                       | Undo/redo icon color       |
+| `--oscd-shell-app-bar-action-icon-disabled-color` | `--md-sys-color-on-primary`                       | Disabled undo/redo icon color |
+| `--oscd-shell-app-bar-action-icon-disabled-container-opacity` | `0`                                   | Disabled undo/redo container opacity |
+| `--oscd-shell-app-bar-separator-color`            | `currentColor`                                    | App bar vertical separator color |
+| `--oscd-shell-app-bar-separator-opacity`          | `0.38`                                            | App bar vertical separator opacity |
 
 ## File Selection Menu
 
@@ -142,24 +207,24 @@ token needs them.
 | `--oscd-shell-editor-plugins-panel-item-leading-space`  | `22px`                      | Left inset in each item                                                                                                     |
 | `--oscd-shell-editor-plugins-panel-item-trailing-space` | `10px`                      | Right inset in each item                                                                                                    |
 | `--oscd-shell-editor-plugins-panel-item-icon-size`      | `28px`                      | Icon size in list items                                                                                                     |
-| `--oscd-shell-editor-plugins-panel-background-color`    | `--oscd-base3`              | Panel surface background. Set to `transparent` for a distro that paints its own background (e.g. behind the shell) instead. |
+| `--oscd-shell-editor-plugins-panel-background-color`    | `--md-sys-color-surface`              | Panel surface background. Set to `transparent` for a distro that paints its own background (e.g. behind the shell) instead. |
 | `--oscd-shell-editor-plugins-panel-item-text-color`     | `--md-sys-color-on-surface` | Resting list text color                                                                                                     |
 | `--oscd-shell-editor-plugins-panel-item-icon-color`     | `--md-sys-color-on-surface` | Resting list icon color                                                                                                     |
-| `--oscd-shell-editor-plugins-panel-item-active-bg`      | `--oscd-primary`            | Active/selected editor background                                                                                           |
+| `--oscd-shell-editor-plugins-panel-item-active-bg`      | `--md-sys-color-primary`            | Active/selected editor background                                                                                           |
 | `--oscd-shell-editor-plugins-panel-item-active-color`   | `--md-sys-color-on-primary` | Active/selected + keyboard-focus text, icon, and highlight border color                                                     |
 
 ## Main Editor Container
 
 | Design Token                           | Default        | Affects                     |
 | -------------------------------------- | -------------- | --------------------------- |
-| `--oscd-shell-editor-background-color` | `--oscd-base3` | Main editor area background |
+| `--oscd-shell-editor-background-color` | `--md-sys-color-surface` | Main editor area background |
 | `--oscd-shell-editor-padding`          | `8px`          | Main editor inner spacing   |
 
 ## Landing Page
 
 | Design Token                                  | Default                       | Affects                                                           |
 | --------------------------------------------- | ----------------------------- | ----------------------------------------------------------------- |
-| `--oscd-shell-landing-background-color`       | `--oscd-base3`                | Landing page background                                           |
+| `--oscd-shell-landing-background-color`       | `--md-sys-color-surface`                | Landing page background                                           |
 | `--oscd-shell-landing-heading-color`          | `--md-sys-color-on-surface`   | Heading text color                                                |
 | `--oscd-shell-landing-heading-font-family`    | `--md-ref-typeface-plain`     | Heading font family                                               |
 | `--oscd-shell-landing-heading-size`           | `50px`                        | Heading size                                                      |
@@ -176,7 +241,7 @@ token needs them.
 | `--oscd-shell-landing-grid-gap`               | `95px`                        | Gap between plugin cards                                          |
 | `--oscd-shell-landing-card-width`             | `240px`                       | Card width                                                        |
 | `--oscd-shell-landing-card-height`            | `180px`                       | Card height                                                       |
-| `--oscd-shell-landing-card-background`        | `--oscd-secondary`            | Card background                                                   |
+| `--oscd-shell-landing-card-background`        | `--md-sys-color-secondary`            | Card background                                                   |
 | `--oscd-shell-landing-card-text-color`        | `--md-sys-color-on-secondary` | Card label and icon color                                         |
 | `--oscd-shell-landing-card-radius`            | `2px`                         | Card corner shape                                                 |
 | `--oscd-shell-landing-card-icon-size`         | `54px`                        | Card icon size                                                    |

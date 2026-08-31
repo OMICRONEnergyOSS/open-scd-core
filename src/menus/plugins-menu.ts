@@ -135,12 +135,13 @@ export class PluginsMenu extends ScopedElementsMixin(LitElement) {
     :host {
       display: flex;
       align-items: center;
-      gap: 4px;
     }
 
     img {
       height: var(--app-bar-app-icon-height);
       width: var(--app-bar-app-icon-width);
+      /* Logical property so the spacing follows the writing direction. */
+      margin-inline-end: var(--app-bar-logo-gap);
     }
 
     :host h1.app-title {
@@ -151,12 +152,17 @@ export class PluginsMenu extends ScopedElementsMixin(LitElement) {
       line-height: var(--app-bar-title-text-line-height);
       letter-spacing: var(--app-bar-title-text-letter-spacing);
       color: var(--app-bar-title-text-color);
+      /* As a flex item the h1 is blockified, so its UA block margins would
+         otherwise apply; the app bar owns this element's spacing. */
+      margin-block: 0;
+      margin-inline: 0 var(--app-bar-title-menu-gap);
       display: inline;
     }
 
     oscd-filled-icon-button {
+      /* Local colour scheme: icon colour and all derived state layers follow
+         from the system colour, so only the size needs setting explicitly. */
       --md-sys-color-on-primary: var(--plugins-menu-button-color);
-      --md-filled-icon-button-icon-color: var(--plugins-menu-button-color);
       --md-filled-icon-button-icon-size: var(--plugins-menu-button-size);
     }
 
