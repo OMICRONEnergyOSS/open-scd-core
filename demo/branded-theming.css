@@ -17,6 +17,14 @@
 
   margin: 0px;
   padding: 0px;
+
+  /* This distro paints its own branded body background (below) and wants it
+     to shine through the side panel, so the panel's own background is
+     deliberately turned off here. Its foreground colors are set explicitly
+     to match the dark body art — they are no longer implied defaults. */
+  --oscd-shell-editor-plugins-panel-background-color: transparent;
+  --oscd-shell-editor-plugins-panel-item-text-color: white;
+  --oscd-shell-editor-plugins-panel-item-icon-color: white;
 }
 
 abbr {

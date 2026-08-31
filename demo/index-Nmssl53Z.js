@@ -2574,17 +2574,6 @@ const getFormState = Symbol('getFormState');
  * }
  * ```
  *
- * IMPORTANT: Requires declares for lit-analyzer
- * @example
- * ```ts
- * const base = mixinFormAssociated(mixinElementInternals(LitElement));
- * class MyControl extends base {
- *   // Writable mixin properties for lit-html binding, needed for lit-analyzer
- *   declare disabled: boolean;
- *   declare name: string;
- * }
- * ```
- *
  * @param base The class to mix functionality into. The base class must use
  *     `mixinElementInternals()`.
  * @return The provided class with `FormAssociated` mixed in.
@@ -2616,7 +2605,9 @@ function mixinFormAssociated(base) {
             return this.hasAttribute('disabled');
         }
         set disabled(disabled) {
-            this.toggleAttribute('disabled', disabled);
+            // Coerce `disabled` in `Boolean()` to ensure that setting to `null` or
+            // `undefined` sets the attribute to `false`.
+            this.toggleAttribute('disabled', Boolean(disabled));
             // We don't need to call `requestUpdate()` since it's called synchronously
             // in `attributeChangedCallback()`.
         }
@@ -2648,9 +2639,7 @@ function mixinFormAssociated(base) {
             this[internals].setFormValue(this[getFormValue](), this[getFormState]());
         }
         [getFormValue]() {
-            // Closure does not allow abstract symbol members, so a default
-            // implementation is needed.
-            throw new Error('Implement [getFormValue]');
+            return this.getAttribute('value');
         }
         [getFormState]() {
             return this[getFormValue]();
@@ -3220,7 +3209,7 @@ OscdRadio.styles = [styles$l];
  * SPDX-License-Identifier: Apache-2.0
  */
 /**
- * TODO(b/265336902): add docs
+ * An icon element.
  */
 class Icon extends i$3 {
     render() {
@@ -3317,62 +3306,234 @@ MdElevation.styles = [styles$j];
  * SPDX-License-Identifier: Apache-2.0
  */
 /**
- * Sets up an element's constructor to enable form submission. The element
- * instance should be form associated and have a `type` property.
+ * A symbol used to access dispatch hooks on an event.
+ */
+const dispatchHooks = Symbol('dispatchHooks');
+/**
+ * Add a hook for an event that is called after the event is dispatched and
+ * propagates to other event listeners.
+ *
+ * This is useful for behaviors that need to check if an event is canceled.
+ *
+ * The callback is invoked synchronously, which allows for better integration
+ * with synchronous platform APIs (like `<form>` or `<label>` clicking).
+ *
+ * Note: `setupDispatchHooks()` must be called on the element before adding any
+ * other event listeners. Call it in the constructor of an element or
+ * controller.
+ *
+ * @example
+ * ```ts
+ * class MyControl extends LitElement {
+ *   constructor() {
+ *     super();
+ *     setupDispatchHooks(this, 'click');
+ *     this.addEventListener('click', event => {
+ *       afterDispatch(event, () => {
+ *         if (event.defaultPrevented) {
+ *           return
+ *         }
+ *
+ *         // ... perform logic
+ *       });
+ *     });
+ *   }
+ * }
+ * ```
+ *
+ * @example
+ * ```ts
+ * class MyController implements ReactiveController {
+ *   constructor(host: ReactiveElement) {
+ *     // setupDispatchHooks() may be called multiple times for the same
+ *     // element and events, making it safe for multiple controllers to use it.
+ *     setupDispatchHooks(host, 'click');
+ *     host.addEventListener('click', event => {
+ *       afterDispatch(event, () => {
+ *         if (event.defaultPrevented) {
+ *           return;
+ *         }
+ *
+ *         // ... perform logic
+ *       });
+ *     });
+ *   }
+ * }
+ * ```
+ *
+ * @param event The event to add a hook to.
+ * @param callback A hook that is called after the event finishes dispatching.
+ */
+function afterDispatch(event, callback) {
+    const hooks = event[dispatchHooks];
+    if (!hooks) {
+        throw new Error(`'${event.type}' event needs setupDispatchHooks().`);
+    }
+    hooks.addEventListener('after', callback, { once: true });
+}
+/**
+ * A lookup map of elements and event types that have a dispatch hook listener
+ * set up. Used to ensure we don't set up multiple hook listeners on the same
+ * element for the same event.
+ */
+const ELEMENT_DISPATCH_HOOK_TYPES = new WeakMap();
+/**
+ * Sets up an element to add dispatch hooks to given event types. This must be
+ * called before adding any event listeners that need to use dispatch hooks
+ * like `afterDispatch()`.
+ *
+ * This function is safe to call multiple times with the same element or event
+ * types. Call it in the constructor of elements, mixins, and controllers to
+ * ensure it is set up before external listeners.
+ *
+ * @example
+ * ```ts
+ * class MyControl extends LitElement {
+ *   constructor() {
+ *     super();
+ *     setupDispatchHooks(this, 'click');
+ *     this.addEventListener('click', this.listenerUsingAfterDispatch);
+ *   }
+ * }
+ * ```
+ *
+ * @param element The element to set up event dispatch hooks for.
+ * @param eventTypes The event types to add dispatch hooks to.
+ */
+function setupDispatchHooks(element, ...eventTypes) {
+    let typesAlreadySetUp = ELEMENT_DISPATCH_HOOK_TYPES.get(element);
+    if (!typesAlreadySetUp) {
+        typesAlreadySetUp = new Set();
+        ELEMENT_DISPATCH_HOOK_TYPES.set(element, typesAlreadySetUp);
+    }
+    for (const eventType of eventTypes) {
+        // Don't register multiple dispatch hook listeners. A second registration
+        // would lead to the second listener calling `afterDispatch()` hooks twice.
+        if (typesAlreadySetUp.has(eventType)) {
+            continue;
+        }
+        element.addEventListener(eventType, (event) => {
+            // Add hooks onto the event.
+            const hooks = new EventTarget();
+            event[dispatchHooks] = hooks;
+            const cleanupLastNodeListener = new AbortController();
+            const callAfterDispatch = () => {
+                cleanupLastNodeListener.abort();
+                hooks.dispatchEvent(new Event('after'));
+            };
+            const patchStopPropagation = (superMethod) => {
+                return function () {
+                    superMethod.call(this);
+                    // Synchronously call afterDispatch() hooks when interrupted.
+                    callAfterDispatch();
+                };
+            };
+            event.stopPropagation = patchStopPropagation(event.stopPropagation);
+            event.stopImmediatePropagation = patchStopPropagation(event.stopImmediatePropagation);
+            // Add an event listener to detect the end of the event's propagation.
+            const composedPath = event.composedPath();
+            let lastNodeForEvent;
+            if (event.composed && event.bubbles) {
+                lastNodeForEvent = composedPath[composedPath.length - 1];
+            }
+            else if (!event.bubbles) {
+                lastNodeForEvent = composedPath[0];
+            }
+            else {
+                lastNodeForEvent = composedPath[0].getRootNode();
+            }
+            lastNodeForEvent.addEventListener(eventType, () => {
+                // Synchronously call afterDispatch() hooks.
+                callAfterDispatch();
+            }, { once: true, signal: cleanupLastNodeListener.signal });
+        }, {
+            // Ensure this listener runs before other listeners.
+            // `setupDispatchHooks()` should be called in constructors to also
+            // ensure they run before any other externally-added capture listeners.
+            capture: true,
+        });
+        typesAlreadySetUp.add(eventType);
+    }
+}
+
+/**
+ * @license
+ * Copyright 2023 Google LLC
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
+ * Mixes in form submitter behavior for a class.
  *
  * A click listener is added to each element instance. If the click is not
  * default prevented, it will submit the element's form, if any.
  *
  * @example
  * ```ts
- * class MyElement extends mixinElementInternals(LitElement) {
- *   static {
- *     setupFormSubmitter(MyElement);
- *   }
- *
+ * const base = mixinFormSubmitter(mixinElementInternals(LitElement));
+ * class MyButton extends base {
  *   static formAssociated = true;
- *
- *   type: FormSubmitterType = 'submit';
  * }
  * ```
  *
- * @param ctor The form submitter element's constructor.
+ * @param base The class to mix functionality into.
+ * @return The provided class with `FormSubmitter` mixed in.
  */
-function setupFormSubmitter(ctor) {
-    ctor.addInitializer((instance) => {
-        const submitter = instance;
-        submitter.addEventListener('click', async (event) => {
-            const { type, [internals]: elementInternals } = submitter;
-            const { form } = elementInternals;
-            if (!form || type === 'button') {
-                return;
-            }
-            // Wait a full task for event bubbling to complete.
-            await new Promise((resolve) => {
-                setTimeout(resolve);
-            });
-            if (event.defaultPrevented) {
-                return;
-            }
-            if (type === 'reset') {
-                form.reset();
-                return;
-            }
-            // form.requestSubmit(submitter) does not work with form associated custom
-            // elements. This patches the dispatched submit event to add the correct
-            // `submitter`.
-            // See https://github.com/WICG/webcomponents/issues/814
-            form.addEventListener('submit', (submitEvent) => {
-                Object.defineProperty(submitEvent, 'submitter', {
-                    configurable: true,
-                    enumerable: true,
-                    get: () => submitter,
+function mixinFormSubmitter(base) {
+    class FormSubmitterElement extends base {
+        // Name attribute must reflect synchronously for form integration.
+        get name() {
+            return this.getAttribute('name') ?? '';
+        }
+        set name(name) {
+            this.setAttribute('name', name);
+        }
+        // Mixins must have a constructor with `...args: any[]`
+        // tslint:disable-next-line:no-any
+        constructor(...args) {
+            super(...args);
+            this.type = 'submit';
+            this.value = '';
+            setupDispatchHooks(this, 'click');
+            this.addEventListener('click', async (event) => {
+                const isReset = this.type === 'reset';
+                const isSubmit = this.type === 'submit';
+                const elementInternals = this[internals];
+                const { form } = elementInternals;
+                if (!form || !(isSubmit || isReset)) {
+                    return;
+                }
+                afterDispatch(event, () => {
+                    if (event.defaultPrevented) {
+                        return;
+                    }
+                    if (isReset) {
+                        form.reset();
+                        return;
+                    }
+                    // form.requestSubmit(submitter) does not work with form associated custom
+                    // elements. This patches the dispatched submit event to add the correct
+                    // `submitter`.
+                    // See https://github.com/WICG/webcomponents/issues/814
+                    form.addEventListener('submit', (submitEvent) => {
+                        Object.defineProperty(submitEvent, 'submitter', {
+                            configurable: true,
+                            enumerable: true,
+                            get: () => this,
+                        });
+                    }, { capture: true, once: true });
+                    elementInternals.setFormValue(this.value);
+                    form.requestSubmit();
                 });
-            }, { capture: true, once: true });
-            elementInternals.setFormValue(submitter.value);
-            form.requestSubmit();
-        });
-    });
+            });
+        }
+    }
+    __decorate$1([
+        n$3()
+    ], FormSubmitterElement.prototype, "type", void 0);
+    __decorate$1([
+        n$3({ reflect: true })
+    ], FormSubmitterElement.prototype, "value", void 0);
+    return FormSubmitterElement;
 }
 
 /**
@@ -3381,29 +3542,13 @@ function setupFormSubmitter(ctor) {
  * SPDX-License-Identifier: Apache-2.0
  */
 // Separate variable needed for closure.
-const buttonBaseClass = mixinDelegatesAria(mixinElementInternals(i$3));
+const buttonBaseClass = mixinDelegatesAria(mixinFormSubmitter(mixinFormAssociated(mixinElementInternals(i$3))));
 /**
  * A button component.
  */
 class Button extends buttonBaseClass {
-    get name() {
-        return this.getAttribute('name') ?? '';
-    }
-    set name(name) {
-        this.setAttribute('name', name);
-    }
-    /**
-     * The associated form element with which this element's value will submit.
-     */
-    get form() {
-        return this[internals].form;
-    }
     constructor() {
         super();
-        /**
-         * Whether or not the button is disabled.
-         */
-        this.disabled = false;
         /**
          * Whether or not the button is "soft-disabled" (disabled but still
          * focusable).
@@ -3439,16 +3584,6 @@ class Button extends buttonBaseClass {
          * Whether to display the icon or not.
          */
         this.hasIcon = false;
-        /**
-         * The default behavior of the button. May be "button", "reset", or "submit"
-         * (default).
-         */
-        this.type = 'submit';
-        /**
-         * The value added to a form with the button's name when the button submits a
-         * form.
-         */
-        this.value = '';
         {
             this.addEventListener('click', this.handleClick.bind(this));
         }
@@ -3537,19 +3672,11 @@ class Button extends buttonBaseClass {
         this.hasIcon = this.assignedIcons.length > 0;
     }
 }
-(() => {
-    setupFormSubmitter(Button);
-})();
-/** @nocollapse */
-Button.formAssociated = true;
 /** @nocollapse */
 Button.shadowRootOptions = {
     mode: 'open',
     delegatesFocus: true,
 };
-__decorate$1([
-    n$3({ type: Boolean, reflect: true })
-], Button.prototype, "disabled", void 0);
 __decorate$1([
     n$3({ type: Boolean, attribute: 'soft-disabled', reflect: true })
 ], Button.prototype, "softDisabled", void 0);
@@ -3568,12 +3695,6 @@ __decorate$1([
 __decorate$1([
     n$3({ type: Boolean, attribute: 'has-icon', reflect: true })
 ], Button.prototype, "hasIcon", void 0);
-__decorate$1([
-    n$3()
-], Button.prototype, "type", void 0);
-__decorate$1([
-    n$3({ reflect: true })
-], Button.prototype, "value", void 0);
 __decorate$1([
     e$3('.button')
 ], Button.prototype, "buttonElement", void 0);
@@ -5164,6 +5285,10 @@ class Field extends i$3 {
         if (wasFloating === shouldBeFloating) {
             return;
         }
+        const keyframes = this.getLabelKeyframes();
+        if (!keyframes.length) {
+            return;
+        }
         this.isAnimating = true;
         this.labelAnimation?.cancel();
         // Only one label is visible at a time for clearer text rendering.
@@ -5178,7 +5303,10 @@ class Field extends i$3 {
         // Re-calculating the animation each time will prevent any visual glitches
         // from appearing.
         // TODO(b/241113345): use animation tokens
-        this.labelAnimation = this.floatingLabelEl?.animate(this.getLabelKeyframes(), { duration: 150, easing: EASING.STANDARD });
+        this.labelAnimation = this.floatingLabelEl?.animate(keyframes, {
+            duration: 150,
+            easing: EASING.STANDARD,
+        });
         this.labelAnimation?.addEventListener('finish', () => {
             // At the end of the animation, update the visible label.
             this.isAnimating = false;
@@ -5193,6 +5321,10 @@ class Field extends i$3 {
         const { x: restingX, y: restingY, height: restingHeight, } = restingLabelEl.getBoundingClientRect();
         const floatingScrollWidth = floatingLabelEl.scrollWidth;
         const restingScrollWidth = restingLabelEl.scrollWidth;
+        // If either label has no dimensions (e.g., display: none), skip animation
+        if (floatingScrollWidth === 0 || restingScrollWidth === 0) {
+            return [];
+        }
         // Scale by width ratio instead of font size since letter-spacing will scale
         // incorrectly. Using the width we can better approximate the adjusted
         // scale and compensate for tracking and overflow.
@@ -5551,7 +5683,7 @@ function isRtl(el, shouldCheck = true) {
  * SPDX-License-Identifier: Apache-2.0
  */
 // Separate variable needed for closure.
-const iconButtonBaseClass = mixinDelegatesAria(mixinElementInternals(i$3));
+const iconButtonBaseClass = mixinDelegatesAria(mixinFormSubmitter(mixinFormAssociated(mixinElementInternals(i$3))));
 /**
  * A button for rendering icons.
  *
@@ -5560,30 +5692,8 @@ const iconButtonBaseClass = mixinDelegatesAria(mixinElementInternals(i$3));
  * @fires change {Event} Dispatched when a toggle button toggles --bubbles
  */
 class IconButton extends iconButtonBaseClass {
-    get name() {
-        return this.getAttribute('name') ?? '';
-    }
-    set name(name) {
-        this.setAttribute('name', name);
-    }
-    /**
-     * The associated form element with which this element's value will submit.
-     */
-    get form() {
-        return this[internals].form;
-    }
-    /**
-     * The labels this element is associated with.
-     */
-    get labels() {
-        return this[internals].labels;
-    }
     constructor() {
         super();
-        /**
-         * Disables the icon button and makes it non-interactive.
-         */
-        this.disabled = false;
         /**
          * "Soft-disables" the icon button (disabled but still focusable).
          *
@@ -5625,20 +5735,32 @@ class IconButton extends iconButtonBaseClass {
          * icon is provided.
          */
         this.selected = false;
-        /**
-         * The default behavior of the button. May be "button", "reset", or "submit"
-         * (default).
-         */
-        this.type = 'submit';
-        /**
-         * The value added to a form with the button's name when the button submits a
-         * form.
-         */
-        this.value = '';
         this.flipIcon = isRtl(this, this.flipIconInRtl);
-        {
-            this.addEventListener('click', this.handleClick.bind(this));
-        }
+        setupDispatchHooks(this, 'click');
+        this.addEventListener('click', (event) => {
+            // If the button is soft-disabled or a disabled link, we need to
+            // explicitly prevent the click from propagating to other event listeners
+            // as well as prevent the default action. This is because the underlying
+            // `<button>` or `<a>` element is not actually `:disabled`.
+            if (this.softDisabled || (this.disabled && this.href)) {
+                event.stopImmediatePropagation();
+                event.preventDefault();
+                return;
+            }
+            // Save current selected state to toggle, since an external event listener
+            // may also change the selected state on click.
+            const wasSelected = this.selected;
+            afterDispatch(event, () => {
+                if (!this.toggle || this.disabled || event.defaultPrevented) {
+                    return;
+                }
+                this.selected = !wasSelected;
+                this.dispatchEvent(new InputEvent('input', { bubbles: true, composed: true }));
+                // Bubbles but does not compose to mimic native browser <input> & <select>
+                // Additionally, native change event is not an InputEvent.
+                this.dispatchEvent(new Event('change', { bubbles: true }));
+            });
+        });
     }
     willUpdate() {
         // Link buttons cannot be disabled or soft-disabled.
@@ -5668,8 +5790,7 @@ class IconButton extends iconButtonBaseClass {
         aria-expanded="${(!this.href && ariaExpanded) || A}"
         aria-pressed="${ariaPressedValue}"
         aria-disabled=${(!this.href && this.softDisabled) || A}
-        ?disabled="${!this.href && this.disabled}"
-        @click="${this.handleClickOnChild}">
+        ?disabled="${!this.href && this.disabled}">
         ${this.renderFocusRing()}
         ${this.renderRipple()}
         ${!this.selected ? this.renderIcon() : A}
@@ -5727,50 +5848,12 @@ class IconButton extends iconButtonBaseClass {
         this.flipIcon = isRtl(this, this.flipIconInRtl);
         super.connectedCallback();
     }
-    /** Handles a click on this element. */
-    handleClick(event) {
-        // If the icon button is soft-disabled, we need to explicitly prevent the
-        // click from propagating to other event listeners as well as prevent the
-        // default action.
-        if (!this.href && this.softDisabled) {
-            event.stopImmediatePropagation();
-            event.preventDefault();
-            return;
-        }
-    }
-    /**
-     * Handles a click on the child <div> or <button> element within this
-     * element's shadow DOM.
-     */
-    async handleClickOnChild(event) {
-        // Allow the event to propagate
-        await 0;
-        if (!this.toggle ||
-            this.disabled ||
-            this.softDisabled ||
-            event.defaultPrevented) {
-            return;
-        }
-        this.selected = !this.selected;
-        this.dispatchEvent(new InputEvent('input', { bubbles: true, composed: true }));
-        // Bubbles but does not compose to mimic native browser <input> & <select>
-        // Additionally, native change event is not an InputEvent.
-        this.dispatchEvent(new Event('change', { bubbles: true }));
-    }
 }
-(() => {
-    setupFormSubmitter(IconButton);
-})();
-/** @nocollapse */
-IconButton.formAssociated = true;
 /** @nocollapse */
 IconButton.shadowRootOptions = {
     mode: 'open',
     delegatesFocus: true,
 };
-__decorate$1([
-    n$3({ type: Boolean, reflect: true })
-], IconButton.prototype, "disabled", void 0);
 __decorate$1([
     n$3({ type: Boolean, attribute: 'soft-disabled', reflect: true })
 ], IconButton.prototype, "softDisabled", void 0);
@@ -5795,12 +5878,6 @@ __decorate$1([
 __decorate$1([
     n$3({ type: Boolean, reflect: true })
 ], IconButton.prototype, "selected", void 0);
-__decorate$1([
-    n$3()
-], IconButton.prototype, "type", void 0);
-__decorate$1([
-    n$3({ reflect: true })
-], IconButton.prototype, "value", void 0);
 __decorate$1([
     r$2()
 ], IconButton.prototype, "flipIcon", void 0);
@@ -8904,9 +8981,11 @@ class Select extends selectBaseClass {
         selectedOptions.forEach(([option]) => {
             if (item !== option) {
                 option.selected = false;
+                option.tabIndex = -1;
             }
         });
         item.selected = true;
+        item.tabIndex = 0;
         return this.updateValueAndDisplayText();
     }
     /**
@@ -32630,74 +32709,172 @@ __decorate$1([
 // import '@webcomponents/scoped-custom-element-registry';
 // import '../dist/oscd-shell.js';
 
+// Demo plugin set mirroring figma-designs/regular-look.png and
+// figma-designs/regular-look-menu-plugin.png so the running shell can be
+// compared 1:1 against the designs. The actual editor a leaf opens is
+// irrelevant here — every editor leaf points to the source editor and every
+// extra menu entry points to oscd-menu-open. Each editor leaf gets a UNIQUE
+// tagName because the side-panel tree derives node ids from tagName (shared
+// tagNames would collide and break selection/expansion state).
 const plugins = {
   menu: [
     {
-      name: 'Open...',
-      translations: { de: 'Datei öffnen' },
-      icon: 'folder_open',
+      name: 'File',
+      translations: { de: 'Datei' },
+      icon: 'folder',
+      plugins: [
+        {
+          name: 'Open',
+          translations: { de: 'Öffnen' },
+          icon: 'description',
+          tagName: 'oscd-menu-open',
+        },
+        {
+          name: 'New File',
+          translations: { de: 'Neue Datei' },
+          icon: 'note_add',
+          tagName: 'oscd-menu-new',
+        },
+        {
+          name: 'Save File',
+          translations: { de: 'Datei speichern' },
+          icon: 'save',
+          requireDoc: true,
+          tagName: 'oscd-menu-save',
+        },
+        {
+          name: 'Close File',
+          translations: { de: 'Datei schließen' },
+          icon: 'close',
+          requireDoc: true,
+          tagName: 'oscd-menu-file-close',
+        },
+      ],
+    },
+    {
+      name: 'Generate SubStation',
+      translations: { de: 'Unterstation erzeugen' },
+      icon: 'grid_on',
       tagName: 'oscd-menu-open',
     },
     {
-      name: 'New File...',
-      translations: { de: 'Neu Datei' },
+      name: 'Import IED',
+      translations: { de: 'IED importieren' },
       icon: 'note_add',
-      tagName: 'oscd-menu-new',
+      tagName: 'oscd-menu-open',
     },
     {
-      name: 'Save...',
-      translations: { de: 'Datei speichern' },
-      icon: 'save',
-      requireDoc: true,
-      tagName: 'oscd-menu-save',
+      name: 'Generate IED',
+      translations: { de: 'IED erzeugen' },
+      icon: 'grid_view',
+      tagName: 'oscd-menu-open',
     },
     {
-      name: 'Rename...',
-      translations: { de: 'Datei umbenenen' },
-      icon: 'edit',
-      requireDoc: true,
-      src: 'https://omicronenergyoss.github.io/oscd-menu-commons/oscd-menu-file-rename.js',
+      name: 'Generator Data Type',
+      translations: { de: 'Datentyp erzeugen' },
+      icon: 'dvr',
+      tagName: 'oscd-menu-open',
     },
     {
-      name: 'Close',
-      translations: { de: 'Schließen' },
-      icon: 'close',
-      requireDoc: true,
-      src: 'https://omicronenergyoss.github.io/oscd-menu-commons/oscd-menu-file-close.js',
-    },
-    {
-      name: 'Add plugins...',
-      translations: { de: 'Erweitern...' },
-      icon: 'extension',
-      src: './AddPlugins.js',
+      name: 'Help',
+      translations: { de: 'Hilfe' },
+      icon: 'help',
+      tagName: 'oscd-menu-open',
     },
   ],
   editor: [
     {
-      name: 'SLD Designer',
-      translations: {
-        de: 'SLD entwerfen',
-      },
+      name: 'SLD',
       icon: 'add_box',
-      requireDoc: true,
-      src: 'https://omicronenergyoss.github.io/oscd-editor-sld/oscd-editor-sld.js',
+      plugins: [
+        {
+          name: 'Design SLD',
+          translations: { de: 'SLD entwerfen' },
+          icon: 'add_box',
+          requireDoc: true,
+          tagName: 'oscd-editor-sld-design',
+        },
+        {
+          name: 'Edit Substation',
+          translations: { de: 'Unterstation bearbeiten' },
+          icon: 'add_box',
+          requireDoc: true,
+          tagName: 'oscd-editor-sld-edit',
+        },
+        {
+          name: 'Sub category',
+          translations: { de: 'Unterkategorie' },
+          icon: 'add_box',
+          requireDoc: true,
+          tagName: 'oscd-editor-sld-sub',
+        },
+      ],
     },
-
     {
-      name: 'Source Editor',
-      translations: { de: 'Source Editor' },
-      icon: 'code',
+      name: 'View GOOSE/SMV',
+      translations: { de: 'GOOSE/SMV ansehen' },
+      icon: 'settings_ethernet',
+      plugins: [
+        {
+          name: 'GOOSE Messages',
+          translations: { de: 'GOOSE-Nachrichten' },
+          icon: 'sync_alt',
+          requireDoc: true,
+          tagName: 'oscd-editor-goose-messages',
+        },
+        {
+          name: 'Sampled Values',
+          translations: { de: 'Abtastwerte' },
+          icon: 'sync_alt',
+          requireDoc: true,
+          tagName: 'oscd-editor-sampled-values',
+        },
+      ],
+    },
+    {
+      name: 'Subscriptions',
+      translations: { de: 'Abonnements' },
+      icon: 'copy_all',
+      plugins: [
+        {
+          name: 'Subscriber View',
+          translations: { de: 'Abonnentenansicht' },
+          icon: 'dvr',
+          requireDoc: true,
+          tagName: 'oscd-editor-subscriber-view',
+        },
+        {
+          name: 'Subscriber Later Binding',
+          translations: { de: 'Späte Bindung' },
+          icon: 'dvr',
+          requireDoc: true,
+          tagName: 'oscd-editor-later-binding',
+        },
+      ],
+    },
+    {
+      name: 'Publish and Address',
+      translations: { de: 'Veröffentlichen und Adressieren' },
+      icon: 'difference',
       requireDoc: true,
-      tagName: 'oscd-editor-source',
+      tagName: 'oscd-editor-publish-address',
+    },
+    {
+      name: 'Compare',
+      translations: { de: 'Vergleichen' },
+      icon: 'settings_ethernet',
+      requireDoc: true,
+      tagName: 'oscd-editor-compare',
+    },
+    {
+      name: 'Stencil',
+      translations: { de: 'Schablone' },
+      icon: 'difference',
+      requireDoc: true,
+      tagName: 'oscd-editor-stencil',
     },
   ],
   background: [
-    {
-      name: 'EditV1 Events Listener',
-      icon: 'none',
-      requireDoc: true,
-      tagName: 'oscd-background-editv1',
-    },
     {
       name: 'EditV1 Events Listener',
       icon: 'none',
@@ -32715,7 +32892,27 @@ registry.define('oscd-menu-new', OscdMenuNewFile$2);
 registry.define('oscd-menu-file-rename', OscdMenuFileRename$1);
 registry.define('oscd-menu-file-close', OscdMenuFileClose);
 registry.define('oscd-background-editv1', OscdBackgroundEditV1);
-registry.define('oscd-editor-source', OscdEditorSource);
+
+// Every editor leaf in the demo config resolves to the source editor. Each is
+// registered under its own tagName (via a distinct subclass) so the tree can
+// give every leaf a unique, collision-free node id.
+const editorTagNames = [
+  'oscd-editor-sld-design',
+  'oscd-editor-sld-edit',
+  'oscd-editor-sld-sub',
+  'oscd-editor-goose-messages',
+  'oscd-editor-sampled-values',
+  'oscd-editor-subscriber-view',
+  'oscd-editor-later-binding',
+  'oscd-editor-publish-address',
+  'oscd-editor-compare',
+  'oscd-editor-stencil',
+];
+for (const tagName of editorTagNames) {
+  if (!registry.get(tagName)) {
+    registry.define(tagName, class extends OscdEditorSource {});
+  }
+}
 
 oscdShell.plugins = plugins;
 
@@ -32736,4 +32933,4 @@ for (const [name, value] of params) {
 //   ),
 // };
 // oscdShell.docName = 'sample.scd';
-//# sourceMappingURL=index-BEbNKi6b.js.map
+//# sourceMappingURL=index-Nmssl53Z.js.map

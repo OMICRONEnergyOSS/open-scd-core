@@ -1,16 +1,40 @@
-import { PluginEntry, SourcedPluginEntry } from '../oscd-shell.js';
+import { PluginBase, PluginEntry, PluginGroup, SourcedPluginEntry } from '../oscd-shell.js';
+export type AnyPluginEntry = PluginEntry | SourcedPluginEntry;
+/**
+ * Helper fn to filter root plugins and grouped plugins, whilst preserving the structure.
+ */
+export declare function filterPlugins(pluginItems: (PluginEntry | PluginGroup<PluginEntry>)[], predicate: (plugin: PluginEntry) => boolean): (PluginEntry | PluginGroup<PluginEntry>)[];
+/**
+ * Returns a flattened array of all plugin entries from a given PluginSet, including those nested within PluginGroups.
+ */
+export declare function flattenPluginEntries<P extends PluginBase = PluginEntry>(pluginSet: (P | PluginGroup<P>)[]): P[];
+/**
+ * Filters plugins by a search term, matching (case-insensitively) against the
+ * leaf plugin names only - group names are intentionally not matched. When a
+ * `locale` is given, the plugin's localized label (`translations[locale]`) is
+ * also matched, so users can search by the label they see. The group structure
+ * is preserved and empty groups are dropped. An empty or whitespace-only term
+ * returns the plugins unchanged.
+ */
+export declare function filterBySearchTerm(editors: (PluginEntry | PluginGroup<PluginEntry>)[], searchTerm: string, locale?: string): (PluginEntry | PluginGroup<PluginEntry>)[];
+/**
+ * Flattens plugins (including those nested within groups) and returns the leaf
+ * entries whose tagName is included in the given pinnedIds.
+ */
+export declare function filterByPinned(editors: (PluginEntry | PluginGroup<PluginEntry>)[], pinnedIds: string[]): PluginEntry[];
+export declare function isPluginGroup<P extends PluginBase = PluginEntry>(item: unknown): item is PluginGroup<P>;
 /**
  * Checks if the given object is a valid Plugin.
- * @param plugin - The object to check.
+ * @param item - The object to check.
  * @returns true if the object is a Plugin, false otherwise.
  */
-export declare function isPlugin(plugin: unknown): plugin is PluginEntry;
+export declare function isPluginEntry(item: unknown): item is PluginEntry;
 /**
  * Checks if the given object is a SourcedPlugin.
- * @param plugin - The object to check.
+ * @param item - The object to check.
  * @returns true if the object is a SourcedPlugin, false otherwise.
  */
-export declare function isSourcedPlugin(plugin: unknown): plugin is SourcedPluginEntry;
+export declare function isSourcedPlugin(item: unknown): item is SourcedPluginEntry;
 /**
  * Validates a Plugin object, checking for required fields and types.
  * If the plugin is invalid, it logs an error and returns undefined.

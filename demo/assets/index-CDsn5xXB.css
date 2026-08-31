@@ -1,0 +1,15 @@
+* {
+  margin: 0;
+  padding: 0;
+}
+
+abbr {
+  border-bottom: none;
+  text-decoration: none;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}

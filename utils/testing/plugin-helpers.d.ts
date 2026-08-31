@@ -1,12 +1,16 @@
-import { OscdShell, PluginEntry } from '../../oscd-shell.js';
-export declare const sampleMenuPlugins: (Omit<PluginEntry, 'tagName'> & {
+import { OscdShell, PluginEntry, PluginGroup } from '../../oscd-shell.js';
+export declare const sampleMenuPlugins: (PluginGroup<Omit<PluginEntry, 'tagName'> & {
     tagName?: string;
     src?: string;
-})[];
+}> | (Omit<PluginEntry, 'tagName'> & {
+    tagName?: string;
+    src?: string;
+}))[];
 export declare const sampleEditorPlugins: (Omit<PluginEntry, 'tagName'> & {
     tagName?: string;
     src?: string;
 })[];
+export declare function findPluginByTagName(pluginSet: (PluginEntry | PluginGroup<PluginEntry>)[], tagName: string): PluginEntry | undefined;
 export declare const isPluginInstanciated: (pluginTagName: string, shell: OscdShell) => boolean;
 export declare const waitForPluginInstanciation: (plugin: PluginEntry, shell: OscdShell) => Promise<void>;
 export declare const waitForPluginsToInstantiate: (plugins: PluginEntry[], shell: OscdShell) => Promise<void[]>;

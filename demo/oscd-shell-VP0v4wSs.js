@@ -23,16 +23,13 @@ function __decorate(decorators, target, key, desc) {
 }
 
 function __classPrivateFieldGet(receiver, state, kind, f) {
-    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
     if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
     return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
 }
 
 function __classPrivateFieldSet(receiver, state, value, kind, f) {
-    if (kind === "m") throw new TypeError("Private method is not writable");
-    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a setter");
-    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
-    return (kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value)), value;
+    if (typeof state === "function" ? receiver !== state || true : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
+    return (state.set(receiver, value)), value;
 }
 
 typeof SuppressedError === "function" ? SuppressedError : function (error, suppressed, message) {
@@ -2708,7 +2705,7 @@ class XMLEditor {
     subscribe(txCallback) {
         __classPrivateFieldGet(this, _XMLEditor_subscribers, "f").push(txCallback);
         return () => {
-            __classPrivateFieldSet(this, _XMLEditor_subscribers, __classPrivateFieldGet(this, _XMLEditor_subscribers, "f").filter(subscriber => subscriber !== txCallback), "f");
+            __classPrivateFieldSet(this, _XMLEditor_subscribers, __classPrivateFieldGet(this, _XMLEditor_subscribers, "f").filter(subscriber => subscriber !== txCallback));
             return txCallback;
         };
     }
@@ -2950,7 +2947,7 @@ const { getLocale, setLocale } = window.localization ??
         sourceLocale,
         targetLocales,
         loadLocale: _locale => {
-            return import(new URL(`./locales/de.js`, import.meta.url).href);
+            return import(new URL(new URL('assets/de-DWD7A42v.js', import.meta.url).href).href);
         },
     });
 /*
@@ -13766,4 +13763,4 @@ OscdShell = __decorate([
 ], OscdShell);
 
 export { OscdShell };
-//# sourceMappingURL=oscd-shell.js.map
+//# sourceMappingURL=oscd-shell-VP0v4wSs.js.map

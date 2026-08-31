@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+  <head>
+    <title>OpenSCD Shell Demo (Branded)</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300&family=Roboto:wght@300;400;500&display=swap"
+    />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css?family=Material+Symbols+Outlined&display=block"
+    />
+
+    <link rel="stylesheet" href="./branded-colors.css" />
+    <link rel="stylesheet" href="./branded-theming.css" />
+  </head>
+  <body>
+    <oscd-shell locale="en"> </oscd-shell>
+    <script type="module">
+      // Known issue, scoped registry polyfill doesn't load as fast as oscd-shell, causing oscs-shell to fail.
+      // To safeguard, we await the polyfill first, then load the rest.
+      await import('@webcomponents/scoped-custom-element-registry');
+      await import('../dist/oscd-shell.js');
+      await import('./branded.js');
+    </script>
+  </body>
+</html>
