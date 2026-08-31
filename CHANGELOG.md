@@ -2,6 +2,29 @@
 
 - fix npm publishing ([88c7af7](https://github.com/OMICRONEnergyOSS/oscd-shell/commit/88c7af777019755d99824f57f1e2b8cb6cd5c18d))
 
+## [0.0.14](https://github.com/OMICRONEnergyOSS/oscd-shell/compare/oscd-shell-v0.0.13...oscd-shell-v0.0.14) (2026-08-31)
+
+
+### Features
+
+* add keyboard navigation to search functionality (ctrl+shift+f) ([30a4949](https://github.com/OMICRONEnergyOSS/oscd-shell/commit/30a4949782ec3de815e9e927249445a4b1a48283))
+* add placeholder item for empty pinned editors group ([3f085e5](https://github.com/OMICRONEnergyOSS/oscd-shell/commit/3f085e5b41309d849265ed1e909be5c4f41bbf41))
+* add plugin grouping support ([64d3b34](https://github.com/OMICRONEnergyOSS/oscd-shell/commit/64d3b34b32e98b43c8517f74be2ba8aceed50afd))
+* add support for collapsible editors panel with flyout group menus ([df4adfd](https://github.com/OMICRONEnergyOSS/oscd-shell/commit/df4adfd02511b7b3761230a11e36a162766fb5ee))
+* add support for grouping plugins ([0089a09](https://github.com/OMICRONEnergyOSS/oscd-shell/commit/0089a09e317424f9e9122a9d80d9fa10612fbe3f))
+* app-bar updated design ([3946d32](https://github.com/OMICRONEnergyOSS/oscd-shell/commit/3946d320ac58d33b1c7aa21ebf847c74147c10c1))
+* realign branding defaults to vanilla solarized ([b5ccdf7](https://github.com/OMICRONEnergyOSS/oscd-shell/commit/b5ccdf727e6b0a17f7fbc114f9b340419b213fe6))
+* realign branding defaults to vanilla solarized ([e13a9c4](https://github.com/OMICRONEnergyOSS/oscd-shell/commit/e13a9c40087d71c6aadbc9fa45d7eaabd177643f))
+* switch side-panel to use oscd-ui oscd-outlined-search-field ([134f6ce](https://github.com/OMICRONEnergyOSS/oscd-shell/commit/134f6ce865cc42a952956ff856a4f39e6e497709))
+
+
+### Bug Fixes
+
+* add accessory icon to pinned tree too ([f7de87e](https://github.com/OMICRONEnergyOSS/oscd-shell/commit/f7de87e853e09706581f6084dea69279e8cdf136))
+* correct search box alignment issues ([cc5b330](https://github.com/OMICRONEnergyOSS/oscd-shell/commit/cc5b330b7fa1d1c2980836c2af20b248e0b26319))
+* pin footer (and footer-divider) to bottom of the side panel so scrolling is within ([6c2dafa](https://github.com/OMICRONEnergyOSS/oscd-shell/commit/6c2dafaed3463fd175e7dac898b15bb107edb7ce))
+* removing cyclical css design toeken refs - general cleanup of token use ([5064208](https://github.com/OMICRONEnergyOSS/oscd-shell/commit/5064208f5eb3cefa9c5031a16c9e9be1ac60a147))
+
 ## [0.0.13](https://github.com/OMICRONEnergyOSS/oscd-shell/compare/oscd-shell-v0.0.12...oscd-shell-v0.0.13) (2026-02-27)
 
 
