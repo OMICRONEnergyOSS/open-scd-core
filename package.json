@@ -50,10 +50,8 @@
     "prepare": "husky"
   },
   "dependencies": {
-    "@compas-bearingpoint/plugins": "file:../compas-bearingpoint-plugins",
     "@lit/localize": "^0.12.2",
     "@omicronenergy/oscd-background-editv1": "^0.0.7",
-    "@omicronenergy/oscd-background-plugin-config": "file:../../OmicronEnergyOSS/oscd-background-plugin-config",
     "@omicronenergy/oscd-editor-source": "^0.0.5",
     "@omicronenergy/oscd-menu-commons": "^0.0.1",
     "@omicronenergy/oscd-menu-open": "^0.0.6",
