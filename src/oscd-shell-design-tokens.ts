@@ -21,8 +21,7 @@ export const oscdShellDesignTokens = css`
    * --oscd-theme-* variables from outside; nothing brand-specific belongs
    * in this file.
    */
-  :host,
-  * {
+  :host {
     --oscd-primary: var(--oscd-theme-primary, #2aa198);
     --oscd-secondary: var(--oscd-theme-secondary, #6c71c4);
     --oscd-base03: var(--oscd-theme-base03, #002b36);
@@ -57,8 +56,6 @@ export const oscdShellDesignTokens = css`
     --md-sys-color-scrim: #000000;
     --md-sys-color-error: var(--oscd-error);
     --md-sys-color-on-error: var(--oscd-base3);
-    --md-icon-button-disabled-icon-color: var(--oscd-base3);
-    /* --md-menu-item-selected-label-text-color: var(--oscd-base01); */
     --md-icon-button-disabled-icon-color: var(--oscd-base3);
 
     /* MD3 has no single generic "system font" token (unlike color); its
@@ -105,27 +102,13 @@ export const oscdShellDesignTokens = css`
     --mdc-theme-text-disabled-on-light: rgba(255, 255, 255, 0.38);
   }
 
-  :host,
-  * {
-    --app-bar-height: 54px;
-
-    --md-sys-color-primary: var(--oscd-primary);
-    --md-sys-color-on-primary: var(--oscd-base3);
-
-    --md-sys-color-secondary-container: var(--oscd-base2);
-
-    --md-sys-color-surface: var(--oscd-base3);
-    --md-sys-color-on-surface: var(--oscd-base00);
-  }
-
   /*
    * Public token -> internal token mappings
    *
    * Example pattern:
    * --internal-variable-name: var(--oscd-shell-public-token, <default>);
    */
-  :host,
-  * {
+  :host {
     /* Shell root */
     --shell-background-color: var(
       --oscd-shell-background-color,
@@ -149,6 +132,8 @@ export const oscdShellDesignTokens = css`
     );
     --app-bar-app-icon-height: var(--oscd-shell-app-bar-icon-height, 34.4px);
     --app-bar-app-icon-width: var(--oscd-shell-app-bar-icon-width, auto);
+    --app-bar-logo-gap: var(--oscd-shell-app-bar-logo-gap, 16px);
+    --app-bar-title-menu-gap: var(--oscd-shell-app-bar-title-menu-gap, 4px);
     --app-bar-title-text-font-family: var(
       --oscd-shell-app-bar-title-font-family,
       var(--md-ref-typeface-plain)
@@ -208,6 +193,22 @@ export const oscdShellDesignTokens = css`
     --app-bar-action-icon-color: var(
       --oscd-shell-app-bar-action-icon-color,
       var(--md-sys-color-on-primary)
+    );
+    --app-bar-action-icon-disabled-color: var(
+      --oscd-shell-app-bar-action-icon-disabled-color,
+      var(--md-sys-color-on-primary)
+    );
+    --app-bar-action-icon-disabled-container-opacity: var(
+      --oscd-shell-app-bar-action-icon-disabled-container-opacity,
+      0
+    );
+    --app-bar-separator-color: var(
+      --oscd-shell-app-bar-separator-color,
+      currentColor
+    );
+    --app-bar-separator-opacity: var(
+      --oscd-shell-app-bar-separator-opacity,
+      0.38
     );
 
     /* Bridge to oscd-ui app bar tokens */

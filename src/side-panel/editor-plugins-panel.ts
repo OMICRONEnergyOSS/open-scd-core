@@ -758,11 +758,12 @@ export class EditorPluginsPanel extends ScopedElementsMixin(LitElement) {
        light surface and reset these back to the shell defaults; see
        .rail-flyout.)
 
-       NB: these are set on the content containers rather than :host on purpose —
-       the shell sets a universal rule (* { --md-sys-color-on-surface: ... }),
-       which targets the panel host from the outer tree and beats a :host
-       declaration. That universal rule cannot cross into this shadow tree, so
-       declaring on the containers reliably wins for all descendants. */
+       NB: these are set on the content containers rather than :host on
+       purpose. A :host declaration would sit on the same element that
+       inherits --editor-plugins-panel-item-text-color, which is itself
+       derived from --md-sys-color-on-surface; declaring on the containers
+       keeps the source token a plain inherited value and so cannot form a
+       reference cycle. See "Layers are read upward" in THEMING.md. */
     .rail,
     .tree-container,
     .footer {
